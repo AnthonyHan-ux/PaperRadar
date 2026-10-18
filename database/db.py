@@ -22,7 +22,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Optional
 
-from models.paper import OaStatus, PdfCandidate, PdfStatus, Paper
+from models.paper import OaStatus, PdfCandidate, PdfStatus, Paper, clean_arxiv_id, clean_doi
 from utils.title_normalizer import normalize_title, title_similarity
 
 log = logging.getLogger(__name__)
@@ -195,14 +195,21 @@ class Database:
         return paper
 
     def _paper_params(self, paper: Paper) -> tuple:
+        # Normalise identifiers on every write: DOIs are case-insensitive and a
+        # mixed-case value would slip past the unique index (SQLite compares
+        # TEXT case-sensitively) and create duplicates.
+        doi = clean_doi(paper.doi)
+        arxiv_id = clean_arxiv_id(paper.arxiv_id)
+        paper.doi = doi
+        paper.arxiv_id = arxiv_id
         return (
             paper.title,
             normalize_title(paper.title),
             _json(paper.authors),
             paper.year,
             paper.venue,
-            paper.doi,
-            paper.arxiv_id,
+            doi,
+            arxiv_id,
             paper.abstract,
             _json(paper.keywords),
             paper.oa_status.value,
@@ -278,7 +285,12 @@ class Database:
     # Write
     # ------------------------------------------------------------------ #
     def upsert(self, paper: Paper, fuzzy_threshold: float = 95.0) -> tuple[int, bool, str]:
-        """Insert or merge ``paper``; returns ``(id, created, reason)``."""
+        """Insert or merge ``paper``; returns ``(id, created, reason)``.
+
+        Never raises ``IntegrityError`` for a duplicate DOI/arXiv id: races and
+        records that collide after the lookup are merged into the row that owns
+        the identifier.
+        """
         existing_id, reason = self.find_existing(paper, fuzzy_threshold)
         if existing_id is not None:
             existing = self.get(existing_id)
@@ -286,10 +298,23 @@ class Database:
                 existing.merge_from(paper)
                 existing.id = existing_id
                 self.update(existing)
+                self._record_sources(existing.id, paper)
+                return existing.id, False, reason
             self._record_sources(existing_id, paper)
             return existing_id, False, reason
 
-        paper_id = self.insert(paper)
+        try:
+            paper_id = self.insert(paper)
+        except sqlite3.IntegrityError:
+            owner_id = self._find_conflict_owner(paper)
+            if owner_id is None:  # pragma: no cover - unknown constraint
+                raise
+            self._merge_duplicate_rows(owner_id, None, paper)
+            self._record_sources(owner_id, paper)
+            log.info("merged duplicate %r into row #%s after IntegrityError",
+                     paper.title[:60], owner_id)
+            return owner_id, False, "conflict"
+
         self._record_sources(paper_id, paper)
         return paper_id, True, "new"
 
@@ -314,8 +339,23 @@ class Database:
         return paper.id
 
     def update(self, paper: Paper) -> None:
+        """Update a row, merging into the identifier owner on a unique clash."""
         if paper.id is None:
             raise ValueError("paper.id is required for update()")
+        try:
+            self._update_raw(paper)
+        except sqlite3.IntegrityError:
+            owner_id = self._find_conflict_owner(paper, exclude_id=paper.id)
+            owner = self.get(owner_id) if owner_id is not None else None
+            if owner is None or owner.id is None:
+                raise
+            target_id, source_id = self._canonical_pair(paper, owner)
+            self._merge_duplicate_rows(target_id, source_id, paper)
+            paper.id = target_id
+            log.info("merged duplicate row #%s into #%s after IntegrityError",
+                     source_id, target_id)
+
+    def _update_raw(self, paper: Paper, conn: Optional[sqlite3.Connection] = None) -> None:
         params = self._paper_params(paper) + (
             _utc_now(), paper.downloaded_at, paper.id,
         )
@@ -328,7 +368,115 @@ class Database:
                 updated_at = ?, downloaded_at = ?
             WHERE id = ?
         """
+        if conn is not None:
+            conn.execute(sql, params)
+            return
         self._execute(sql, params, commit=True)
+
+    # ------------------------------------------------------------------ #
+    # Duplicate resolution
+    # ------------------------------------------------------------------ #
+    def _find_conflict_owner(
+        self, paper: Paper, exclude_id: Optional[int] = None
+    ) -> Optional[int]:
+        """Return the id of a *different* row that owns one of our identifiers."""
+        checks: list[tuple[str, Optional[str]]] = [
+            ("doi", paper.doi),
+            ("arxiv_id", paper.arxiv_id),
+        ]
+        for column, value in checks:
+            if not value:
+                continue
+            row = self._execute(
+                f"SELECT id FROM papers WHERE {column} = ? AND id <> ?",
+                (value, exclude_id if exclude_id is not None else -1),
+            ).fetchone()
+            if row:
+                return int(row["id"])
+        return None
+
+    @staticmethod
+    def _row_priority(paper: Paper) -> int:
+        """Higher wins: a validated local PDF is the most valuable record."""
+        if paper.local_pdf_path and paper.pdf_status == PdfStatus.VALIDATED:
+            return 4
+        if paper.local_pdf_path:
+            return 3
+        if paper.doi:
+            return 2
+        if paper.arxiv_id:
+            return 1
+        return 0
+
+    def _canonical_pair(self, incoming: Paper, owner: Paper) -> tuple[int, int]:
+        """Decide which row survives: returns ``(target_id, source_id)``."""
+        assert incoming.id is not None and owner.id is not None
+        incoming_priority = self._row_priority(incoming)
+        owner_priority = self._row_priority(owner)
+        if incoming_priority > owner_priority:
+            return incoming.id, owner.id
+        if owner_priority > incoming_priority:
+            return owner.id, incoming.id
+        # Same rank: keep the older row so provenance stays stable.
+        if owner.id <= incoming.id:
+            return owner.id, incoming.id
+        return incoming.id, owner.id
+
+    def _merge_duplicate_rows(
+        self,
+        target_id: int,
+        source_id: Optional[int],
+        incoming: Optional[Paper] = None,
+    ) -> int:
+        """Merge ``source_id`` (and optional ``incoming``) into ``target_id``.
+
+        Runs inside a single transaction: delete the source row first so the
+        unique DOI/arXiv indexes are free, then write the merged row and move
+        provenance (``paper_sources`` / ``paper_tags`` / ``download_logs``).
+        """
+        with self._write_lock:
+            conn = self.connection
+            try:
+                target = self.get(target_id)
+                if target is None:  # pragma: no cover - defensive
+                    conn.rollback()
+                    return target_id
+                merged = target
+                if source_id is not None and source_id != target_id:
+                    source = self.get(source_id)
+                    if source is not None:
+                        merged.merge_from(source)
+                if incoming is not None:
+                    merged.merge_from(incoming)
+                merged.id = target_id
+
+                if source_id is not None and source_id != target_id:
+                    # Move provenance BEFORE deleting the row: paper_sources and
+                    # paper_tags are ON DELETE CASCADE and would vanish.
+                    conn.execute(
+                        "UPDATE OR IGNORE paper_sources SET paper_id = ? WHERE paper_id = ?",
+                        (target_id, source_id),
+                    )
+                    conn.execute("DELETE FROM paper_sources WHERE paper_id = ?", (source_id,))
+                    conn.execute(
+                        "UPDATE OR IGNORE paper_tags SET paper_id = ? WHERE paper_id = ?",
+                        (target_id, source_id),
+                    )
+                    conn.execute("DELETE FROM paper_tags WHERE paper_id = ?", (source_id,))
+                    conn.execute(
+                        "UPDATE download_logs SET paper_id = ? WHERE paper_id = ?",
+                        (target_id, source_id),
+                    )
+                    conn.execute("DELETE FROM papers WHERE id = ?", (source_id,))
+                self._update_raw(merged, conn=conn)
+                conn.commit()
+                return target_id
+            except Exception:
+                try:
+                    conn.rollback()
+                except sqlite3.Error:
+                    pass
+                raise
 
     def update_download_state(
         self,
