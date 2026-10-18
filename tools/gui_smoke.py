@@ -16,6 +16,10 @@ from pathlib import Path
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 # The offscreen platform plugin does not discover system fonts by itself.
 os.environ.setdefault("QT_QPA_FONTDIR", str(Path(r"C:\Windows\Fonts")))
+# Never touch the real user data directory from a smoke test.
+os.environ.setdefault(
+    "PAPERRADAR_HOME", str(Path(__file__).resolve().parents[1] / ".smoke-home")
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
