@@ -41,6 +41,15 @@ class AppService:
             level=str(self.settings.app_cfg.get("log_level", "INFO")),
         )
 
+        # Surface a V1.0 -> V1.1 data migration in the GUI log / CLI output.
+        import utils.config as config_module
+
+        self.migration_report = getattr(config_module, "LAST_MIGRATION", None)
+        if self.migration_report is not None and getattr(
+            self.migration_report, "attempted", False
+        ):
+            log.info(self.migration_report.summary())
+
         self.http = HttpClient(
             user_agent=self.settings.user_agent,
             timeout=float(self.settings.api.get("timeout_seconds", 30)),

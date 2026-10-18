@@ -1,22 +1,33 @@
 """Configuration, paths and the default research profile.
 
-Layout (all under ``home``):
+Runtime data (database, library, logs, cache, tmp, exports, user config) lives
+**outside** the program directory, by default in:
 
-    PaperRadar/
-        config/config.yaml, research_profile.yaml
+    Windows : %LOCALAPPDATA%\\PaperRadar\\data
+    Linux   : ~/.local/share/PaperRadar/data
+
+This is what makes the application safe to run from ``Program Files``, a USB
+stick or a read-only distribution folder, and it removes the V1.0 collision
+between the ``database/`` source package and the runtime ``database/`` folder.
+
+Layout (all under ``data root``):
+
+    data/
+        config/user_config.yaml, research_profile.yaml
         library/<year>/<venue>/<file>.pdf
         database/paperradar.db
         logs/app.log
         cache/*.json
         tmp/*.part
+        exports/
 
-``home`` is the executable directory when frozen (portable exe) and the project
-root when running from source, overridable with ``PAPERRADAR_HOME``.
+``PAPERRADAR_HOME`` overrides the data root (tests and portable installs).
 """
 
 from __future__ import annotations
 
 import copy
+import logging
 import os
 import sys
 from dataclasses import dataclass, field
@@ -25,8 +36,10 @@ from typing import Any, Optional
 
 import yaml
 
+log = logging.getLogger(__name__)
+
 APP_NAME = "PaperRadar"
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.1.0"
 
 DEFAULT_CONFIG: dict[str, Any] = {
     "app": {"theme": "dark", "language": "zh", "log_level": "INFO"},
@@ -34,7 +47,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "openalex_mailto": "",
         "unpaywall_email": "",
         "semantic_scholar_api_key": "",
-        "user_agent": "PaperRadar/1.0 (+https://github.com/paperradar; academic use)",
+        "user_agent": "PaperRadar/1.1 (+https://github.com/paperradar; academic use)",
         "timeout_seconds": 30,
         "max_retries": 3,
         "cache_ttl_hours": 24,
@@ -138,17 +151,112 @@ def resource_root() -> Path:
     return project_root()
 
 
-def default_home() -> Path:
+def default_data_root() -> Path:
+    """Where user data lives.  Override with ``PAPERRADAR_HOME``."""
     env = os.environ.get("PAPERRADAR_HOME")
     if env:
         return Path(env).expanduser().resolve()
+    if sys.platform == "win32":
+        base = os.environ.get("LOCALAPPDATA")
+        root = Path(base) if base else Path.home() / "AppData" / "Local"
+        return (root / APP_NAME / "data").resolve()
+    return (Path.home() / ".local" / "share" / APP_NAME / "data").resolve()
+
+
+def program_dir() -> Path:
+    """Directory holding the executable (frozen) or the source checkout."""
     if is_frozen():
         exe_dir = Path(sys.executable).resolve().parent
-        # The CLI ships in <app>/cli/ and must share the GUI's data directory.
+        # The CLI ships in <app>/cli/ and shares the GUI's program directory.
         if exe_dir.name.lower() == "cli" and (exe_dir.parent / "PaperRadar.exe").exists():
             return exe_dir.parent
         return exe_dir
     return project_root()
+
+
+def legacy_home_candidates() -> list[Path]:
+    """Directories that a V1.0 installation may have stored data in."""
+    candidates: list[Path] = [program_dir()]
+    if not is_frozen():
+        candidates.append(project_root())
+    unique: list[Path] = []
+    for candidate in candidates:
+        try:
+            resolved = candidate.resolve()
+        except OSError:  # pragma: no cover - weird paths
+            continue
+        if resolved not in unique:
+            unique.append(resolved)
+    return unique
+
+
+def looks_like_legacy_home(path: Path) -> bool:
+    """True only when the directory really holds V1.0 *user data*.
+
+    A source checkout always has ``config/config.yaml`` (the bundled template),
+    so config alone is not evidence; a frozen program directory is different.
+    """
+    try:
+        if (path / "database" / "paperradar.db").is_file():
+            return True
+        library = path / "library"
+        if library.is_dir() and next(iter(library.rglob("*.pdf")), None) is not None:
+            return True
+        if is_frozen() and (path / "config" / "research_profile.yaml").is_file():
+            return True
+    except OSError:  # pragma: no cover
+        return False
+    return False
+
+
+def find_legacy_home(target: Path) -> Optional[Path]:
+    for candidate in legacy_home_candidates():
+        if candidate == target:
+            continue
+        if looks_like_legacy_home(candidate):
+            return candidate
+    return None
+
+
+# Set by resolve_home() so the GUI/CLI can report what happened.
+LAST_MIGRATION: Any = None
+
+
+def resolve_home(migrate: bool = True) -> Path:
+    """Return the data root, migrating a V1.0 installation when needed.
+
+    Falls back to the legacy directory if migration fails, so the application
+    always starts with the user's existing data rather than an empty library.
+    """
+    global LAST_MIGRATION
+    target = default_data_root()
+    if os.environ.get("PAPERRADAR_HOME") or not migrate:
+        return target
+
+    from services.migration_service import MigrationService  # local: avoids a cycle
+
+    if MigrationService.marker_path(target).exists():
+        return target
+    legacy = find_legacy_home(target)
+    if legacy is None:
+        return target
+
+    report = MigrationService(legacy, target).run()
+    LAST_MIGRATION = report
+    if report.success:
+        log.info("migrated V1.0 data from %s to %s", legacy, target)
+        return target
+
+    log.error(
+        "data migration from %s failed (%s); continuing with the legacy data directory",
+        legacy, report.error,
+    )
+    return legacy
+
+
+def default_home() -> Path:
+    """Backwards-compatible alias for the resolved data root."""
+    return resolve_home()
 
 
 @dataclass
@@ -178,6 +286,12 @@ class AppPaths:
 
     @property
     def config_path(self) -> Path:
+        """User overrides (created on demand, never overwritten by upgrades)."""
+        return self.config_dir / "user_config.yaml"
+
+    @property
+    def legacy_config_path(self) -> Path:
+        """V1.0 user configuration, still read for backwards compatibility."""
         return self.config_dir / "config.yaml"
 
     @property
@@ -257,6 +371,19 @@ def _ensure_default_file(target: Path, default_doc: dict[str, Any]) -> None:
         write_yaml(target, default_doc)
     except OSError:
         pass
+
+
+USER_CONFIG_TEMPLATE = """\
+# PaperRadar user configuration.
+# Values here override the built-in defaults; delete a key to fall back.
+# Keep this file in %LOCALAPPDATA%\\PaperRadar\\data\\config\\.
+
+api:
+  # Fill these in to join the polite pools and enable Unpaywall.
+  openalex_mailto: ""
+  unpaywall_email: ""
+  semantic_scholar_api_key: ""
+"""
 
 
 # --------------------------------------------------------------------------- #
@@ -352,23 +479,35 @@ def load_settings(
     config_path: Optional[Path] = None,
     profile_path: Optional[Path] = None,
     create_defaults: bool = True,
+    migrate: bool = True,
 ) -> Settings:
-    paths = AppPaths(home or default_home())
+    resolved_home = Path(home) if home is not None else resolve_home(migrate=migrate)
+    paths = AppPaths(resolved_home)
     if create_defaults:
         paths.ensure()
-        _ensure_default_file(paths.config_path, DEFAULT_CONFIG)
+        if not paths.config_path.exists():
+            try:
+                paths.config_path.write_text(USER_CONFIG_TEMPLATE, encoding="utf-8")
+            except OSError:  # pragma: no cover - read-only dir
+                pass
         _ensure_default_file(paths.profile_path, DEFAULT_PROFILE)
 
-    user_config = read_yaml(Path(config_path) if config_path else paths.config_path)
-    bundled_config = read_yaml(resource_root() / "config" / "config.yaml")
-    config = _deep_merge(DEFAULT_CONFIG, bundled_config)
-    config = _deep_merge(config, user_config)
+    config = _deep_merge(DEFAULT_CONFIG, read_yaml(resource_root() / "config" / "config.yaml"))
+    if config_path is not None:
+        config = _deep_merge(config, read_yaml(Path(config_path)))
+    else:
+        # V1.0 stored user settings in config/config.yaml; keep reading it so an
+        # upgrade never silently resets someone's API keys.
+        if paths.legacy_config_path != paths.config_path and paths.legacy_config_path.exists():
+            config = _deep_merge(config, read_yaml(paths.legacy_config_path))
+        config = _deep_merge(config, read_yaml(paths.config_path))
     config["venues"] = _union_list(config.get("venues"), DEFAULT_CONFIG["venues"])
     config["directions"] = _union_list(config.get("directions"), DEFAULT_CONFIG["directions"])
 
-    user_profile = read_yaml(Path(profile_path) if profile_path else paths.profile_path)
-    bundled_profile = read_yaml(resource_root() / "config" / "research_profile.yaml")
-    profile = _deep_merge(DEFAULT_PROFILE, bundled_profile)
-    profile = _deep_merge(profile, user_profile)
+    profile = _deep_merge(DEFAULT_PROFILE, read_yaml(resource_root() / "config" / "research_profile.yaml"))
+    profile = _deep_merge(
+        profile,
+        read_yaml(Path(profile_path)) if profile_path else read_yaml(paths.profile_path),
+    )
 
     return Settings(paths=paths, config=config, profile=profile)
