@@ -352,10 +352,26 @@ def read_yaml(path: Path) -> dict[str, Any]:
     except FileNotFoundError:
         return {}
     except (OSError, yaml.YAMLError) as exc:
-        import logging
-
-        logging.getLogger(__name__).warning("cannot read %s: %s", path, exc)
+        log.warning("cannot read %s: %s", path, exc)
+        if isinstance(exc, yaml.YAMLError):
+            _quarantine_broken_config(path)
         return {}
+
+
+def _quarantine_broken_config(path: Path) -> Optional[Path]:
+    """Keep a copy of an unparsable config before falling back to defaults."""
+    import shutil
+    from datetime import datetime
+
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    target = path.with_name(f"{path.stem}.broken.{stamp}{path.suffix}")
+    try:
+        shutil.copy2(path, target)
+        log.warning("broken config backed up to %s", target)
+        return target
+    except OSError as exc:  # pragma: no cover - permission issues
+        log.debug("cannot back up broken config: %s", exc)
+        return None
 
 
 def write_yaml(path: Path, data: dict[str, Any]) -> None:

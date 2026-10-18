@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import threading
+import time
 from pathlib import Path
 from typing import Callable, Iterable, Optional
 
@@ -58,6 +59,9 @@ class AppService:
             cache=JsonCache(self.paths.cache_dir, ttl_seconds=self.settings.cache_ttl_seconds),
         )
         self.db = db or Database(self.paths.db_path)
+        if getattr(self.db, "corruption_note", ""):
+            log.critical(self.db.corruption_note)
+        self._cleanup_stale_temp_files()
         self.providers = build_providers(self.settings, self.http)
         self.relevance = RelevanceService(self.settings)
         self.search_service = SearchService(
@@ -81,6 +85,45 @@ class AppService:
         )
 
     # ------------------------------------------------------------------ #
+    def _cleanup_stale_temp_files(self, max_age_hours: float = 24.0) -> int:
+        """Remove ``*.part`` leftovers from interrupted downloads.
+
+        Only files older than ``max_age_hours`` are touched, so a download that
+        is running right now is never disturbed.
+        """
+        removed = 0
+        cutoff = time.time() - max_age_hours * 3600
+        try:
+            candidates = list(self.paths.tmp_dir.glob("*.part"))
+        except OSError:  # pragma: no cover
+            return 0
+        for path in candidates:
+            try:
+                if path.stat().st_mtime < cutoff:
+                    path.unlink()
+                    removed += 1
+            except OSError:
+                continue
+        if removed:
+            log.info("removed %d stale partial downloads", removed)
+        return removed
+
+    # ------------------------------------------------------------------ #
+    def clear_cache(self) -> int:
+        """Delete cached API responses only.  Never touches DB or library."""
+        removed = 0
+        try:
+            for path in self.paths.cache_dir.glob("*.json"):
+                try:
+                    path.unlink()
+                    removed += 1
+                except OSError:
+                    continue
+        except OSError:  # pragma: no cover
+            pass
+        log.info("cache cleared (%d files)", removed)
+        return removed
+
     def close(self) -> None:
         if self._closed:
             return
@@ -158,8 +201,13 @@ class AppService:
                 paper.pdf_status = stored.pdf_status
                 paper.downloaded_at = stored.downloaded_at
             elif stored.local_pdf_path:
-                # DB points at a file that no longer exists: forget it.
-                self.db.update_download_state(existing_id, PdfStatus.NOT_CHECKED, "")
+                # The row points at a file that no longer exists.  Keep the
+                # record (never delete the user's metadata) and mark it.
+                self.db.update_download_state(
+                    existing_id, PdfStatus.MISSING_LOCAL_FILE, ""
+                )
+                paper.pdf_status = PdfStatus.MISSING_LOCAL_FILE
+                paper.local_pdf_path = None
             if stored.oa_status != OaStatus.UNKNOWN:
                 paper.oa_status = stored.oa_status
             if not paper.abstract and stored.abstract:

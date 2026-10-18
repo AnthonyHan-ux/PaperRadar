@@ -21,6 +21,7 @@ STATUS_LABELS: dict[str, str] = {
     PdfStatus.PUBLIC_BUT_BLOCKED.value: "公开但被阻止",
     PdfStatus.PAYWALLED_ONLY.value: "仅付费",
     PdfStatus.NO_PUBLIC_COPY_FOUND.value: "无公开副本",
+    PdfStatus.MISSING_LOCAL_FILE.value: "本地文件丢失",
     PdfStatus.DOWNLOAD_FAILED.value: "下载失败",
     PdfStatus.WRONG_PAPER.value: "错误论文",
     PdfStatus.INVALID_PDF.value: "无效PDF",
@@ -39,6 +40,7 @@ STATUS_COLORS: dict[str, str] = {
     PdfStatus.WRONG_PAPER.value: "#ff7b72",
     PdfStatus.INVALID_PDF.value: "#ff7b72",
     PdfStatus.NO_PUBLIC_COPY_FOUND.value: "#8b949e",
+    PdfStatus.MISSING_LOCAL_FILE.value: "#ffd166",
     PdfStatus.NOT_CHECKED.value: "#8b949e",
 }
 
@@ -60,6 +62,7 @@ PDF_LABELS = {
     PdfStatus.PUBLIC_BUT_BLOCKED.value: "被阻止",
     PdfStatus.PAYWALLED_ONLY.value: "仅付费",
     PdfStatus.NO_PUBLIC_COPY_FOUND.value: "无公开版",
+    PdfStatus.MISSING_LOCAL_FILE.value: "文件丢失",
     PdfStatus.DOWNLOAD_FAILED.value: "下载失败",
     PdfStatus.WRONG_PAPER.value: "错误论文",
     PdfStatus.INVALID_PDF.value: "无效PDF",

@@ -77,8 +77,52 @@ class Database:
         # file handles held by QThreadPool worker threads.
         self._conn_lock = threading.Lock()
         self._connections: set[sqlite3.Connection] = set()
+        self.corruption_note = ""
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._quarantine_if_corrupt()
         self._initialise()
+
+    def _quarantine_if_corrupt(self) -> None:
+        """Detect a damaged database and move it aside before opening it.
+
+        The corrupt file is *never deleted*: it is renamed to
+        ``paperradar.db.corrupt.<timestamp>`` and the application starts with a
+        fresh, empty database so the user can keep working.
+        """
+        if not self.path.exists():
+            return
+        try:
+            if self.path.stat().st_size == 0:
+                return
+        except OSError:  # pragma: no cover
+            return
+
+        result = "ok"
+        try:
+            probe = sqlite3.connect(str(self.path), timeout=5.0)
+            try:
+                row = probe.execute("PRAGMA quick_check").fetchone()
+                result = str(row[0]) if row else "unknown"
+            finally:
+                probe.close()
+        except sqlite3.DatabaseError as exc:
+            result = f"{type(exc).__name__}: {exc}"
+
+        if result.strip().lower() == "ok":
+            return
+
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        target = self.path.with_name(f"{self.path.name}.corrupt.{stamp}")
+        try:
+            self.path.replace(target)
+        except OSError as exc:
+            raise RuntimeError(
+                f"数据库已损坏且无法备份（{result}）：{exc}"
+            ) from exc
+        self.corruption_note = (
+            f"数据库损坏（{result}），已备份为 {target.name}，本次以空数据库启动"
+        )
+        log.critical(self.corruption_note)
 
     # ------------------------------------------------------------------ #
     @property
