@@ -87,6 +87,7 @@ $common = @(
     "--noconfirm", "--clean",
     "--add-data", "$Root\config;config",
     "--add-data", "$Root\database\schema.sql;database",
+    "--icon", "$Root\assets\paperradar.ico",
     "--exclude-module", "tkinter",
     "--exclude-module", "matplotlib",
     "--exclude-module", "numpy",
@@ -109,6 +110,7 @@ Write-Step "Building GUI (onedir)"
 & $VenvPython -m PyInstaller @common `
     --name PaperRadar `
     --windowed `
+    --version-file "$Root\assets\version_info.txt" `
     --distpath dist `
     --workpath build/gui `
     --specpath build `
@@ -119,6 +121,7 @@ Write-Step "Building CLI (onedir, for batch audits)"
 & $VenvPython -m PyInstaller @common `
     --name PaperRadarCLI `
     --console `
+    --version-file "$Root\assets\version_info_cli.txt" `
     --distpath dist/cli `
     --workpath build/cli `
     --specpath build `
@@ -134,6 +137,8 @@ if (Test-Path (Join-Path $Root "dist\cli\PaperRadarCLI")) {
 }
 Copy-Item (Join-Path $Root "README.md") $guiDir -Force
 Copy-Item (Join-Path $Root "requirements.txt") $guiDir -Force
+Copy-Item (Join-Path $Root "examples\titles_sample.txt") $guiDir -Force
+Copy-Item (Join-Path $Root "docs") $guiDir -Recurse -Force
 if (Test-Path (Join-Path $Root "dist\cli")) {
     Remove-Item (Join-Path $Root "dist\cli") -Recurse -Force
 }
@@ -143,12 +148,35 @@ $cliExe = Join-Path $cliDir "PaperRadarCLI.exe"
 if (-not (Test-Path $exe)) { throw "Expected executable was not produced: $exe" }
 if (-not (Test-Path $cliExe)) { throw "Expected CLI executable was not produced: $cliExe" }
 
+Write-Step "Smoke-testing the packaged GUI"
+$smokePng = Join-Path $env:TEMP "paperradar_smoke_$PID.png"
+$smokeOut = Join-Path $env:TEMP "paperradar_smoke_$PID.out"
+$smokeErr = Join-Path $env:TEMP "paperradar_smoke_$PID.err"
+$smokeHome = Join-Path $env:TEMP "paperradar_smoke_home_$PID"
+Remove-Item $smokePng, $smokeOut, $smokeErr -ErrorAction SilentlyContinue
+$env:PAPERRADAR_HOME = $smokeHome
+$proc = Start-Process -FilePath $exe `
+    -ArgumentList "--smoke", "`"$smokePng`"" `
+    -RedirectStandardOutput $smokeOut `
+    -RedirectStandardError $smokeErr `
+    -PassThru
+$null = $proc.WaitForExit(180000)
+Remove-Item Env:\PAPERRADAR_HOME -ErrorAction SilentlyContinue
+if (-not (Test-Path $smokePng)) {
+    Get-Content $smokeErr -ErrorAction SilentlyContinue | Select-Object -Last 20
+    throw "Packaged GUI failed the --smoke self-check."
+}
+Remove-Item $smokePng, $smokeOut, $smokeErr -ErrorAction SilentlyContinue
+Remove-Item $smokeHome -Recurse -Force -ErrorAction SilentlyContinue
+Write-Host "smoke test passed." -ForegroundColor Green
+
 Write-Step "Done"
 $size = [math]::Round(((Get-ChildItem $guiDir -Recurse -File | Measure-Object Length -Sum).Sum / 1MB), 1)
 Write-Host "GUI : $exe" -ForegroundColor Green
 Write-Host "CLI : $cliExe" -ForegroundColor Green
 Write-Host "Size: $size MB"
 Write-Host ""
-Write-Host "The first run creates library/ database/ logs/ config/ next to the exe."
+Write-Host "User data lives in %LOCALAPPDATA%\PaperRadar\data (V1.0 data is migrated on first run)."
 Write-Host "Self-check: .\dist\PaperRadar\PaperRadar.exe --smoke smoke.png"
+Write-Host "Version:   .\dist\PaperRadar\cli\PaperRadarCLI.exe --version"
 Write-Host "Batch audit: .\dist\PaperRadar\cli\PaperRadarCLI.exe audit --titles titles.txt --out audit.csv --resume"
