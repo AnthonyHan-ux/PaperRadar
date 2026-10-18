@@ -74,10 +74,15 @@ venues:
   - ICLR
   - AAAI
   - ACM MM
-  - TGRS
+  - IEEE TGRS
   - IEEE TIP
+  - IEEE JSTARS
+  - IEEE GRSL
   - ISPRS JPRS
   - Remote Sensing of Environment
+  - Remote Sensing (MDPI)
+  - JAG
+  - Photogrammetric Engineering & Remote Sensing
   - Information Fusion
   - arXiv
   - Other

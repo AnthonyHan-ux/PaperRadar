@@ -80,7 +80,9 @@ DEFAULT_CONFIG: dict[str, Any] = {
     },
     "venues": [
         "CVPR", "ICCV", "ECCV", "NeurIPS", "ICLR", "AAAI", "ACM MM",
-        "TGRS", "IEEE TIP", "ISPRS JPRS", "Remote Sensing of Environment",
+        "IEEE TGRS", "IEEE TIP", "IEEE JSTARS", "IEEE GRSL",
+        "ISPRS JPRS", "Remote Sensing of Environment", "Remote Sensing (MDPI)",
+        "JAG", "Photogrammetric Engineering & Remote Sensing",
         "Information Fusion", "arXiv", "Other",
     ],
     "directions": [
@@ -212,6 +214,19 @@ def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any
             result[key] = _deep_merge(result[key], value)
         else:
             result[key] = copy.deepcopy(value)
+    return result
+
+
+def _union_list(current: Any, defaults: Any) -> list[Any]:
+    """Union two option lists, keeping the user's order first.
+
+    Venue/direction lists grow between releases; a user config written for
+    V1.0 must still see the new options without editing YAML.
+    """
+    result: list[Any] = []
+    for item in list(current or []) + list(defaults or []):
+        if item not in result:
+            result.append(item)
     return result
 
 
@@ -348,6 +363,8 @@ def load_settings(
     bundled_config = read_yaml(resource_root() / "config" / "config.yaml")
     config = _deep_merge(DEFAULT_CONFIG, bundled_config)
     config = _deep_merge(config, user_config)
+    config["venues"] = _union_list(config.get("venues"), DEFAULT_CONFIG["venues"])
+    config["directions"] = _union_list(config.get("directions"), DEFAULT_CONFIG["directions"])
 
     user_profile = read_yaml(Path(profile_path) if profile_path else paths.profile_path)
     bundled_profile = read_yaml(resource_root() / "config" / "research_profile.yaml")

@@ -8,10 +8,13 @@ venue filter and the scoring bonus.
 
 from __future__ import annotations
 
+import logging
 import re
 from typing import Optional
 
 from utils.title_normalizer import normalize_text
+
+log = logging.getLogger(__name__)
 
 # canonical -> (folder slug, aliases)
 VENUE_MAP: dict[str, dict[str, object]] = {
@@ -51,6 +54,20 @@ VENUE_MAP: dict[str, dict[str, object]] = {
         "slug": "TIP",
         "aliases": ["tip", "transactions on image processing", "ieee transactions on image processing"],
     },
+    "IEEE JSTARS": {
+        "slug": "JSTARS",
+        "aliases": [
+            "jstars", "selected topics in applied earth observations",
+            "ieee journal of selected topics in applied earth observations",
+        ],
+    },
+    "IEEE GRSL": {
+        "slug": "GRSL",
+        "aliases": [
+            "grsl", "geoscience and remote sensing letters",
+            "ieee geoscience and remote sensing letters",
+        ],
+    },
     "ISPRS JPRS": {
         "slug": "ISPRS_JPRS",
         "aliases": [
@@ -61,6 +78,25 @@ VENUE_MAP: dict[str, dict[str, object]] = {
     "Remote Sensing of Environment": {
         "slug": "RSE",
         "aliases": ["remote sensing of environment", "rse"],
+    },
+    "Remote Sensing (MDPI)": {
+        "slug": "Remote_Sensing_MDPI",
+        "aliases": ["remote sensing", "remote sens"],
+    },
+    "JAG": {
+        "slug": "JAG",
+        "aliases": [
+            "jag", "international journal of applied earth observation",
+            "applied earth observation and geoinformation",
+        ],
+    },
+    "Photogrammetric Engineering & Remote Sensing": {
+        "slug": "PE_RS",
+        "aliases": [
+            "photogrammetric engineering",
+            "photogrammetric engineering and remote sensing",
+            "pe rs", "pe&rs",
+        ],
     },
     "Information Fusion": {
         "slug": "Information_Fusion",
@@ -95,6 +131,7 @@ def canonical_venue(venue: Optional[str]) -> str:
                 return canonical
         elif alias_norm in norm:
             return canonical
+    log.debug("Unknown venue normalized to Other: %r", venue)
     return "Other"
 
 
