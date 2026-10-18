@@ -39,7 +39,9 @@ class RateLimiter:
         self.intervals = {k: max(0.0, v) for k, v in (intervals or {}).items()}
         self.max_backoff = max_backoff
         self._lock = threading.Lock()
-        self._last_call: dict[str, float] = {}
+        # Reserved transmission slots: the gate never sleeps while holding the
+        # lock, so a 3.2 s arXiv interval cannot stall OpenAlex/Crossref calls.
+        self._next_allowed: dict[str, float] = {}
 
     def interval_for(self, key: str) -> float:
         return self.intervals.get(key, self.default_interval)
@@ -51,12 +53,11 @@ class RateLimiter:
             return
         with self._lock:
             now = time.monotonic()
-            last = self._last_call.get(key, 0.0)
-            delay = last + interval - now
-            if delay > 0:
-                time.sleep(delay)
-                now = time.monotonic()
-            self._last_call[key] = now
+            scheduled = max(now, self._next_allowed.get(key, 0.0))
+            self._next_allowed[key] = scheduled + interval
+        delay = scheduled - now
+        if delay > 0:
+            time.sleep(delay)
 
     def backoff(self, attempt: int, retry_after: Optional[float] = None) -> float:
         """Seconds to sleep before retry ``attempt`` (0-based), with jitter."""
