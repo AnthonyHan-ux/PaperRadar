@@ -1,0 +1,35 @@
+# --- Python -----------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.pytest-home/
+
+# --- Build output -----------------------------------------------------------
+build/
+dist/
+*.spec
+pip_*.log
+build_log.txt
+
+# --- Runtime data -----------------------------------------------------------
+# V1.0 kept runtime data next to the code; V1.1 moved it to
+# %LOCALAPPDATA%\PaperRadar\data.  These rules keep legacy copies out of git
+# WITHOUT ever ignoring the `database/` source package.
+/library/
+/logs/
+/cache/
+/tmp/
+/exports/
+/database/*.db
+/database/*.db-wal
+/database/*.db-shm
+*.db
+*.db-wal
+*.db-shm
+
+# --- Scratch ----------------------------------------------------------------
+artifacts/
+smoke.png
+verify.png

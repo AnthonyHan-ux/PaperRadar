@@ -1,0 +1,9 @@
+# 批量审计示例：每行一个论文标题，# 开头为注释。
+# 用法：
+#   PaperRadarCLI.exe audit --titles examples\titles_sample.txt --out audit.csv --resume
+#
+# 替换成你自己的 99 篇标题即可（也可用 CSV，需要 title 列）。
+
+Beyond Attention: Convolutional Global Context for Remote Sensing Change Detection
+M2CD: A Unified MultiModal Framework for Optical-SAR Change Detection with Mixture of Experts
+Reliability-Aware Missing-Modality SAR-Optical Change Detection for Rapid Disaster Damage Mapping
