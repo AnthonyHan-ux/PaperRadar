@@ -33,3 +33,5 @@ build_log.txt
 artifacts/
 smoke.png
 verify.png
+.selftest-home/
+.smoke-home/
