@@ -83,8 +83,12 @@ def parse_entry(entry: ET.Element, source: str = "arxiv") -> Optional[Paper]:
         if link.get("title") == "pdf":
             pdf_url = link.get("href", "")
             break
-    if not pdf_url and arxiv_id:
+    if arxiv_id:
+        # Canonical, version-less PDF URL so that the same paper found through
+        # arXiv and through the OA finder dedupes to a single candidate.
         pdf_url = f"https://arxiv.org/pdf/{arxiv_id}"
+    elif not pdf_url:
+        pdf_url = ""
 
     candidates = [PdfCandidate(url=pdf_url, provider="arXiv", is_oa=True)] if pdf_url else []
 

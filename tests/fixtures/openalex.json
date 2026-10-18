@@ -1,0 +1,809 @@
+{
+  "meta": {
+    "count": 80703
+  },
+  "results": [
+    {
+      "id": "https://openalex.org/W4416727338",
+      "doi": "https://doi.org/10.1109/igarss55030.2025.11243782",
+      "title": "MSFANet: A Multi-Scale Feature Alignment Model For Optical/SAR Change Detection",
+      "display_name": "MSFANet: A Multi-Scale Feature Alignment Model For Optical/SAR Change Detection",
+      "publication_year": 2025,
+      "publication_date": "2025-08-03",
+      "type": "conference-paper",
+      "authorships": [
+        {
+          "author_position": "first",
+          "author": {
+            "id": "https://openalex.org/A5006827289",
+            "display_name": "Yu Duan",
+            "orcid": "https://orcid.org/0000-0003-1113-7953",
+            "observed_orcids": [
+              "https://orcid.org/0000-0003-1113-7953"
+            ]
+          },
+          "institutions": [
+            {
+              "id": "https://openalex.org/I37461747",
+              "display_name": "Wuhan University",
+              "ror": "https://ror.org/033vjfk17",
+              "country_code": "CN",
+              "type": "education",
+              "lineage": [
+                "https://openalex.org/I37461747"
+              ]
+            },
+            {
+              "id": "https://openalex.org/I4210118728",
+              "display_name": "State Key Laboratory of Information Engineering in Surveying Mapping and Remote Sensing",
+              "ror": "https://ror.org/02bpap860",
+              "country_code": "CN",
+              "type": "facility",
+              "lineage": [
+                "https://openalex.org/I4210118728"
+              ]
+            }
+          ],
+          "countries": [
+            "CN"
+          ],
+          "is_corresponding": false,
+          "raw_author_name": "Yu Duan",
+          "raw_affiliation_strings": [
+            "Wuhan University,The State Key Laboratory of Information Engineering in Surveying, Mapping and Remote Sensing,Wuhan,China"
+          ],
+          "raw_orcid": null,
+          "affiliations": [
+            {
+              "raw_affiliation_string": "Wuhan University,The State Key Laboratory of Information Engineering in Surveying, Mapping and Remote Sensing,Wuhan,China",
+              "institution_ids": [
+                "https://openalex.org/I37461747",
+                "https://openalex.org/I4210118728"
+              ]
+            }
+          ]
+        },
+        {
+          "author_position": "middle",
+          "author": {
+            "id": "https://openalex.org/A5006872582",
+            "display_name": "Kaimin Sun",
+            "orcid": "https://orcid.org/0000-0002-2664-9479",
+            "observed_orcids": [
+              "https://orcid.org/0000-0002-2664-9479"
+            ]
+          },
+          "institutions": [
+            {
+              "id": "https://openalex.org/I37461747",
+              "display_name": "Wuhan University",
+              "ror": "https://ror.org/033vjfk17",
+              "country_code": "CN",
+              "type": "education",
+              "lineage": [
+                "https://openalex.org/I37461747"
+              ]
+            },
+            {
+              "id": "https://openalex.org/I4210118728",
+              "display_name": "State Key Laboratory of Information Engineering in Surveying Mapping and Remote Sensing",
+              "ror": "https://ror.org/02bpap860",
+              "country_code": "CN",
+              "type": "facility",
+              "lineage": [
+                "https://openalex.org/I4210118728"
+              ]
+            }
+          ],
+          "countries": [
+            "CN"
+          ],
+          "is_corresponding": false,
+          "raw_author_name": "Kaimin Sun",
+          "raw_affiliation_strings": [
+            "Wuhan University,The State Key Laboratory of Information Engineering in Surveying, Mapping and Remote Sensing,Wuhan,China"
+          ],
+          "raw_orcid": null,
+          "affiliations": [
+            {
+              "raw_affiliation_string": "Wuhan University,The State Key Laboratory of Information Engineering in Surveying, Mapping and Remote Sensing,Wuhan,China",
+              "institution_ids": [
+                "https://openalex.org/I37461747",
+                "https://openalex.org/I4210118728"
+              ]
+            }
+          ]
+        },
+        {
+          "author_position": "middle",
+          "author": {
+            "id": null,
+            "display_name": "Wei Cui",
+            "orcid": null,
+            "observed_orcids": []
+          },
+          "institutions": [
+            {
+              "id": "https://openalex.org/I37461747",
+              "display_name": "Wuhan University",
+              "ror": "https://ror.org/033vjfk17",
+              "country_code": "CN",
+              "type": "education",
+              "lineage": [
+                "https://openalex.org/I37461747"
+              ]
+            },
+            {
+              "id": "https://openalex.org/I4210118728",
+              "display_name": "State Key Laboratory of Information Engineering in Surveying Mapping and Remote Sensing",
+              "ror": "https://ror.org/02bpap860",
+              "country_code": "CN",
+              "type": "facility",
+              "lineage": [
+                "https://openalex.org/I4210118728"
+              ]
+            }
+          ],
+          "countries": [
+            "CN"
+          ],
+          "is_corresponding": false,
+          "raw_author_name": "Wei Cui",
+          "raw_affiliation_strings": [
+            "Wuhan University,The State Key Laboratory of Information Engineering in Surveying, Mapping and Remote Sensing,Wuhan,China"
+          ],
+          "raw_orcid": null,
+          "affiliations": [
+            {
+              "raw_affiliation_string": "Wuhan University,The State Key Laboratory of Information Engineering in Surveying, Mapping and Remote Sensing,Wuhan,China",
+              "institution_ids": [
+                "https://openalex.org/I37461747",
+                "https://openalex.org/I4210118728"
+              ]
+            }
+          ]
+        },
+        {
+          "author_position": "middle",
+          "author": {
+            "id": "https://openalex.org/A5040062050",
+            "display_name": "Tao He",
+            "orcid": "https://orcid.org/0000-0003-2079-7988",
+            "observed_orcids": [
+              "https://orcid.org/0000-0003-2079-7988"
+            ]
+          },
+          "institutions": [
+            {
+              "id": "https://openalex.org/I37461747",
+              "display_name": "Wuhan University",
+              "ror": "https://ror.org/033vjfk17",
+              "country_code": "CN",
+              "type": "education",
+              "lineage": [
+                "https://openalex.org/I37461747"
+              ]
+            },
+            {
+              "id": "https://openalex.org/I4210118728",
+              "display_name": "State Key Laboratory of Information Engineering in Surveying Mapping and Remote Sensing",
+              "ror": "https://ror.org/02bpap860",
+              "country_code": "CN",
+              "type": "facility",
+              "lineage": [
+                "https://openalex.org/I4210118728"
+              ]
+            }
+          ],
+          "countries": [
+            "CN"
+          ],
+          "is_corresponding": false,
+          "raw_author_name": "Tao He",
+          "raw_affiliation_strings": [
+            "Wuhan University,The State Key Laboratory of Information Engineering in Surveying, Mapping and Remote Sensing,Wuhan,China"
+          ],
+          "raw_orcid": null,
+          "affiliations": [
+            {
+              "raw_affiliation_string": "Wuhan University,The State Key Laboratory of Information Engineering in Surveying, Mapping and Remote Sensing,Wuhan,China",
+              "institution_ids": [
+                "https://openalex.org/I37461747",
+                "https://openalex.org/I4210118728"
+              ]
+            }
+          ]
+        },
+        {
+          "author_position": "middle",
+          "author": {
+            "id": "https://openalex.org/A5101325441",
+            "display_name": "Yingjiao Tan",
+            "orcid": null,
+            "observed_orcids": []
+          },
+          "institutions": [
+            {
+              "id": "https://openalex.org/I37461747",
+              "display_name": "Wuhan University",
+              "ror": "https://ror.org/033vjfk17",
+              "country_code": "CN",
+              "type": "education",
+              "lineage": [
+                "https://openalex.org/I37461747"
+              ]
+            },
+            {
+              "id": "https://openalex.org/I4210118728",
+              "display_name": "State Key Laboratory of Information Engineering in Surveying Mapping and Remote Sensing",
+              "ror": "https://ror.org/02bpap860",
+              "country_code": "CN",
+              "type": "facility",
+              "lineage": [
+                "https://openalex.org/I4210118728"
+              ]
+            }
+          ],
+          "countries": [
+            "CN"
+          ],
+          "is_corresponding": false,
+          "raw_author_name": "Yingjiao Tan",
+          "raw_affiliation_strings": [
+            "Wuhan University,The State Key Laboratory of Information Engineering in Surveying, Mapping and Remote Sensing,Wuhan,China"
+          ],
+          "raw_orcid": null,
+          "affiliations": [
+            {
+              "raw_affiliation_string": "Wuhan University,The State Key Laboratory of Information Engineering in Surveying, Mapping and Remote Sensing,Wuhan,China",
+              "institution_ids": [
+                "https://openalex.org/I37461747",
+                "https://openalex.org/I4210118728"
+              ]
+            }
+          ]
+        },
+        {
+          "author_position": "last",
+          "author": {
+            "id": "https://openalex.org/A5101998957",
+            "display_name": "Heng Zhang",
+            "orcid": "https://orcid.org/0000-0003-1864-5432",
+            "observed_orcids": [
+              "https://orcid.org/0000-0003-1864-5432"
+            ]
+          },
+          "institutions": [],
+          "countries": [],
+          "is_corresponding": false,
+          "raw_author_name": "Heng Zhang",
+          "raw_affiliation_strings": [
+            "Tengyuan Coal Co., Ltd.,Ordos,China"
+          ],
+          "raw_orcid": null,
+          "affiliations": [
+            {
+              "raw_affiliation_string": "Tengyuan Coal Co., Ltd.,Ordos,China",
+              "institution_ids": []
+            }
+          ]
+        }
+      ],
+      "primary_location": {
+        "id": "doi:10.1109/igarss55030.2025.11243782",
+        "doi": "https://doi.org/10.1109/igarss55030.2025.11243782",
+        "is_oa": false,
+        "landing_page_url": "https://doi.org/10.1109/igarss55030.2025.11243782",
+        "pdf_url": null,
+        "source": {
+          "id": "https://openalex.org/S4363604196",
+          "display_name": "IEEE International Geoscience and Remote Sensing Symposium (IGARSS)",
+          "issn_l": null,
+          "issn": null,
+          "is_oa": false,
+          "is_in_doaj": false,
+          "is_core": false,
+          "listed_in": [],
+          "host_organization": null,
+          "host_organization_name": null,
+          "host_organization_lineage": [],
+          "host_organization_lineage_names": [],
+          "type": "conference"
+        },
+        "license": null,
+        "license_id": null,
+        "version": "publishedVersion",
+        "is_accepted": true,
+        "is_published": true,
+        "raw_source_name": "IGARSS 2025 - 2025 IEEE International Geoscience and Remote Sensing Symposium",
+        "raw_type": "proceedings-article"
+      },
+      "best_oa_location": null,
+      "locations": [
+        {
+          "id": "doi:10.1109/igarss55030.2025.11243782",
+          "doi": "https://doi.org/10.1109/igarss55030.2025.11243782",
+          "is_oa": false,
+          "landing_page_url": "https://doi.org/10.1109/igarss55030.2025.11243782",
+          "pdf_url": null,
+          "source": {
+            "id": "https://openalex.org/S4363604196",
+            "display_name": "IEEE International Geoscience and Remote Sensing Symposium (IGARSS)",
+            "issn_l": null,
+            "issn": null,
+            "is_oa": false,
+            "is_in_doaj": false,
+            "is_core": false,
+            "listed_in": [],
+            "host_organization": null,
+            "host_organization_name": null,
+            "host_organization_lineage": [],
+            "host_organization_lineage_names": [],
+            "type": "conference"
+          },
+          "license": null,
+          "license_id": null,
+          "version": "publishedVersion",
+          "is_accepted": true,
+          "is_published": true,
+          "raw_source_name": "IGARSS 2025 - 2025 IEEE International Geoscience and Remote Sensing Symposium",
+          "raw_type": "proceedings-article"
+        }
+      ],
+      "open_access": {
+        "is_oa": false,
+        "oa_status": "closed",
+        "oa_url": null,
+        "any_repository_has_fulltext": false
+      },
+      "cited_by_count": 1,
+      "abstract_inverted_index": {
+        "Optical": [
+          0
+        ],
+        "and": [
+          1,
+          13,
+          52,
+          70,
+          86,
+          90,
+          93,
+          111,
+          116,
+          136,
+          160
+        ],
+        "Synthetic": [
+          2
+        ],
+        "Aperture": [
+          3
+        ],
+        "Radar": [
+          4
+        ],
+        "(SAR)": [
+          5
+        ],
+        "images": [
+          6
+        ],
+        "exhibit": [
+          7
+        ],
+        "inherent": [
+          8
+        ],
+        "differences": [
+          9
+        ],
+        "in": [
+          10,
+          99,
+          158
+        ],
+        "imaging": [
+          11
+        ],
+        "mechanisms": [
+          12
+        ],
+        "feature": [
+          14,
+          50,
+          55,
+          134,
+          141
+        ],
+        "representation,": [
+          15
+        ],
+        "making": [
+          16
+        ],
+        "it": [
+          17
+        ],
+        "difficult": [
+          18
+        ],
+        "to": [
+          19,
+          48,
+          84,
+          102,
+          126
+        ],
+        "directly": [
+          20
+        ],
+        "compare": [
+          21
+        ],
+        "their": [
+          22
+        ],
+        "features,": [
+          23,
+          92,
+          108,
+          132
+        ],
+        "which": [
+          24,
+          44
+        ],
+        "impacts": [
+          25
+        ],
+        "the": [
+          26,
+          38,
+          59,
+          71,
+          100,
+          104,
+          138
+        ],
+        "performance": [
+          27
+        ],
+        "of": [
+          28,
+          114,
+          140
+        ],
+        "cross-modal": [
+          29,
+          107
+        ],
+        "change": [
+          30,
+          162
+        ],
+        "detection.": [
+          31
+        ],
+        "To": [
+          32
+        ],
+        "address": [
+          33
+        ],
+        "this": [
+          34
+        ],
+        "issue,": [
+          35
+        ],
+        "we": [
+          36
+        ],
+        "propose": [
+          37
+        ],
+        "Multi-Scale": [
+          39
+        ],
+        "Feature": [
+          40,
+          61,
+          73
+        ],
+        "Alignment": [
+          41
+        ],
+        "Network": [
+          42
+        ],
+        "(MSFANet),": [
+          43
+        ],
+        "utilizes": [
+          45,
+          122
+        ],
+        "multi-scale": [
+          46
+        ],
+        "features": [
+          47
+        ],
+        "enhance": [
+          49
+        ],
+        "representation": [
+          51
+        ],
+        "achieve": [
+          53
+        ],
+        "effective": [
+          54
+        ],
+        "alignment.": [
+          56
+        ],
+        "We": [
+          57
+        ],
+        "introduce": [
+          58
+        ],
+        "Low-Dimensional": [
+          60
+        ],
+        "Fusion": [
+          62,
+          66
+        ],
+        "Module": [
+          63,
+          75,
+          79
+        ],
+        "(Dual-Modal": [
+          64
+        ],
+        "Attention": [
+          65
+        ],
+        "Module,": [
+          67
+        ],
+        "DMAF": [
+          68,
+          78
+        ],
+        "Module)": [
+          69
+        ],
+        "High-Dimensional": [
+          72
+        ],
+        "Selection": [
+          74
+        ],
+        "(Channel": [
+          76
+        ],
+        "Ranker).": [
+          77
+        ],
+        "employs": [
+          80
+        ],
+        "an": [
+          81
+        ],
+        "attention": [
+          82
+        ],
+        "mechanism": [
+          83,
+          98,
+          125
+        ],
+        "weight": [
+          85
+        ],
+        "fuse": [
+          87
+        ],
+        "low-dimensional": [
+          88
+        ],
+        "optical": [
+          89,
+          115,
+          159
+        ],
+        "SAR": [
+          91,
+          117,
+          161
+        ],
+        "uses": [
+          94
+        ],
+        "a": [
+          95,
+          123
+        ],
+        "global": [
+          96
+        ],
+        "self-attention": [
+          97
+        ],
+        "transformer": [
+          101
+        ],
+        "capture": [
+          103
+        ],
+        "relationships": [
+          105
+        ],
+        "between": [
+          106
+        ],
+        "achieving": [
+          109
+        ],
+        "spatial": [
+          110
+        ],
+        "semantic": [
+          112
+        ],
+        "alignment": [
+          113
+        ],
+        "features.": [
+          118
+        ],
+        "The": [
+          119
+        ],
+        "Channel": [
+          120
+        ],
+        "Ranker": [
+          121
+        ],
+        "Squeeze-and-Excitation": [
+          124
+        ],
+        "select": [
+          127
+        ],
+        "important": [
+          128
+        ],
+        "channels": [
+          129
+        ],
+        "from": [
+          130
+        ],
+        "high-dimensional": [
+          131
+        ],
+        "reducing": [
+          133
+        ],
+        "redundancy": [
+          135
+        ],
+        "improving": [
+          137
+        ],
+        "effectiveness": [
+          139,
+          157
+        ],
+        "representation.": [
+          142
+        ],
+        "Experimental": [
+          143
+        ],
+        "results": [
+          144
+        ],
+        "demonstrate": [
+          145
+        ],
+        "that": [
+          146
+        ],
+        "MSFANet": [
+          147
+        ],
+        "outperforms": [
+          148
+        ],
+        "other": [
+          149
+        ],
+        "methods": [
+          150
+        ],
+        "on": [
+          151
+        ],
+        "multiple": [
+          152
+        ],
+        "evaluation": [
+          153
+        ],
+        "metrics,": [
+          154
+        ],
+        "validating": [
+          155
+        ],
+        "its": [
+          156
+        ],
+        "detection": [
+          163
+        ],
+        "tasks.": [
+          164
+        ]
+      },
+      "keywords": [
+        {
+          "id": "https://openalex.org/keywords/change-detection",
+          "display_name": "change detection",
+          "score": 0.7559999823570251
+        },
+        {
+          "id": "https://openalex.org/keywords/optical-sar-image-fusion",
+          "display_name": "optical and SAR image fusion",
+          "score": 0.6610000133514404
+        },
+        {
+          "id": "https://openalex.org/keywords/cross-modal-feature-alignment",
+          "display_name": "cross-modal feature alignment",
+          "score": 0.9390000104904175
+        },
+        {
+          "id": "https://openalex.org/keywords/multiscale-feature-fusion",
+          "display_name": "multi-scale feature fusion",
+          "score": 0.7459999918937683
+        },
+        {
+          "id": "https://openalex.org/keywords/attention-mechanism",
+          "display_name": "attention mechanism",
+          "score": 0.7300000190734863
+        },
+        {
+          "id": "https://openalex.org/keywords/self-attention",
+          "display_name": "self-attention",
+          "score": 0.6399999856948853
+        },
+        {
+          "id": "https://openalex.org/keywords/squeeze-and-excitation",
+          "display_name": "squeeze-and-excitation",
+          "score": 0.8899999856948853
+        },
+        {
+          "id": "https://openalex.org/keywords/channel-selection",
+          "display_name": "channel selection",
+          "score": 0.7860000133514404
+        },
+        {
+          "id": "https://openalex.org/keywords/feature-redundancy-reduction",
+          "display_name": "feature redundancy reduction",
+          "score": 0.6430000066757202
+        }
+      ],
+      "referenced_works_count": 8
+    }
+  ]
+}

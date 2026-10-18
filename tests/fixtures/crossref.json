@@ -1,0 +1,40 @@
+{
+  "status": "ok",
+  "message": {
+    "total-results": 3789364,
+    "items": [
+      {
+        "publisher": "Elsevier BV",
+        "abstract": "<jats:p>Rapid building-damage mapping often begins before all scheduled satellite views are available. Optical imagery provides sharp spatial detail but may be blocked by cloud, smoke, or poor illumination, whereas synthetic aperture radar can observe through cloud but is affected by speckle and side-looking geometry. This paper formulates a constrained change-detection task in which a pre-event optical image is always available and at least one post-event optical or radar view must be present. We propose Reliability-Aware Masked Multimodal Change Detection, named RAMM-CD, to produce binary damaged-building maps under three valid acquisition modes: full optical–radar acquisition, missing post-event optical imagery, and missing post-event radar imagery. The method combines availability-masked training, bounded local alignment, quality-supervised reliability fusion, change consistency, and boundary supervision. These components are designed to use only observed evidence, downweight locally degraded views, and avoid reconstructing an image that was not acquired. For Image and Vision Computing, the manuscript emphasizes an event-disjoint BRIGHT evaluation protocol, baseline-matched training budgets, controlled cloud, speckle, and registration tests, ablations, and fixed-device latency measurement.</jats:p>",
+        "DOI": "10.2139/ssrn.7218470",
+        "type": "posted-content",
+        "is-referenced-by-count": 0,
+        "title": [
+          "Reliability-Aware Missing-Modality SAR–Optical Change Detection for Rapid Disaster Damage Mapping"
+        ],
+        "author": [
+          {
+            "given": "qinao",
+            "family": "hu",
+            "sequence": "first",
+            "affiliation": [],
+            "role": [
+              {
+                "vocabulary": "crossref",
+                "role": "author"
+              }
+            ]
+          }
+        ],
+        "issued": {
+          "date-parts": [
+            [
+              2026
+            ]
+          ]
+        },
+        "URL": "https://doi.org/10.2139/ssrn.7218470"
+      }
+    ]
+  }
+}

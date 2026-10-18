@@ -1,0 +1,52 @@
+{
+  "doi": "10.1109/lgrs.2025.3590959",
+  "doi_url": "https://doi.org/10.1109/lgrs.2025.3590959",
+  "title": "M2CD: A Unified MultiModal Framework for Optical-SAR Change Detection With Mixture of Experts and Self-Distillation",
+  "year": 2025,
+  "published_date": "2025-06-01T00:00:00.000Z",
+  "journal_name": "IEEE Geoscience and Remote Sensing Letters",
+  "journal_is_oa": false,
+  "journal_issns": "1545-598X,1558-0571",
+  "publisher": "IEEE",
+  "is_oa": true,
+  "oa_status": "green",
+  "has_repository_copy": true,
+  "best_oa_location": {
+    "url": "https://arxiv.org/abs/2503.19406",
+    "url_for_pdf": "https://arxiv.org/pdf/2503.19406",
+    "url_for_landing_page": "https://arxiv.org/abs/2503.19406",
+    "version": "submittedVersion",
+    "host_type": "repository",
+    "license": "cc-by",
+    "is_oa": true,
+    "updated": "2025-03-25T00:00:00.000Z"
+  },
+  "oa_locations": [
+    {
+      "url": "https://arxiv.org/abs/2503.19406",
+      "url_for_pdf": "https://arxiv.org/pdf/2503.19406",
+      "url_for_landing_page": "https://arxiv.org/abs/2503.19406",
+      "version": "submittedVersion",
+      "host_type": "repository",
+      "license": "cc-by",
+      "is_oa": true
+    }
+  ],
+  "z_authors": [
+    {
+      "given": "Ziyuan",
+      "family": "Liu",
+      "sequence": "first",
+      "affiliation": [],
+      "author_position": "first",
+      "is_ corresponding": false
+    },
+    {
+      "given": "Yongjun",
+      "family": "Zhang",
+      "sequence": "additional",
+      "affiliation": [],
+      "author_position": "middle"
+    }
+  ]
+}

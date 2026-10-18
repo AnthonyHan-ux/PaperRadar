@@ -1,0 +1,61 @@
+{
+  "total": 42737,
+  "data": [
+    {
+      "paperId": "50f5169de2c9f2a07988489f355367f037d60ca7",
+      "externalIds": {
+        "DBLP": "journals/lgrs/LiuZWG25",
+        "ArXiv": "2503.19406",
+        "DOI": "10.1109/LGRS.2025.3590959",
+        "CorpusId": 277314060
+      },
+      "publicationVenue": {
+        "id": "290335d6-cddc-465d-87f1-807e86d8efee",
+        "name": "IEEE Geoscience and Remote Sensing Letters",
+        "type": "journal",
+        "alternate_names": [
+          "IEEE Geosci Remote Sens Lett"
+        ],
+        "issn": "1545-598X",
+        "url": "http://ieeexplore.ieee.org/servlet/opac?punumber=8859",
+        "alternate_urls": [
+          "https://ieeexplore.ieee.org/xpl/RecentIssue.jsp?punumber=8859"
+        ]
+      },
+      "url": "https://www.semanticscholar.org/paper/50f5169de2c9f2a07988489f355367f037d60ca7",
+      "title": "M2CD: A Unified MultiModal Framework for Optical-SAR Change Detection With Mixture of Experts and Self-Distillation",
+      "venue": "IEEE Geoscience and Remote Sensing Letters",
+      "year": 2025,
+      "citationCount": 8,
+      "openAccessPdf": {
+        "url": "",
+        "status": "CLOSED",
+        "license": null,
+        "disclaimer": "Notice: Paper or abstract available at https://arxiv.org/abs/2503.19406, which is subject to the license by the author or copyright owner provided with this content. Please go to the source to verify the license and copyright information for your use."
+      },
+      "fieldsOfStudy": [
+        "Computer Science"
+      ],
+      "publicationDate": "2025-03-25",
+      "authors": [
+        {
+          "authorId": "2293575789",
+          "name": "Zi-Yuan Liu"
+        },
+        {
+          "authorId": "2277687098",
+          "name": "Jia-Wei Zhang"
+        },
+        {
+          "authorId": "2352017184",
+          "name": "Wenyu Wang"
+        },
+        {
+          "authorId": "2277904763",
+          "name": "Yuan-Tao Gu"
+        }
+      ],
+      "abstract": "Most existing change detection (CD) methods focus on optical images captured at different times, and deep learning (DL) has achieved remarkable success in this domain. However, in extreme scenarios such as disaster response, synthetic aperture radar (SAR), with its active imaging capability, is more suitable for providing postevent data. This introduces new challenges for CD methods, as existing weight-sharing Siamese networks struggle to effectively learn the cross-modal data distribution between optical and SAR images. To address this challenge, we propose a unified multimodal CD framework, M2CD. We integrate mixture of experts (MoEs) modules into the backbone to explicitly handle diverse modalities, thereby enhancing the model’s ability to learn multimodal data distributions. Additionally, we innovatively propose an optical-to-SAR path (O2SP) and implement self-distillation during training to reduce the feature space discrepancy between different modalities, further alleviating the model’s learning burden. We design multiple variants of M2CD based on both CNN and transformer backbones. Extensive experiments validate the effectiveness of the proposed framework, with the MiT-b1 version of M2CD outperforming all state-of-the-art (SOTA) methods in optical-SAR CD tasks. Code is available at https://github.com/circleLZY/M2CD"
+    }
+  ]
+}

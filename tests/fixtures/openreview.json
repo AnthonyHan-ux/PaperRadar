@@ -1,0 +1,83 @@
+{
+  "count": 10000,
+  "notes": [
+    {
+      "content": {
+        "venue": {
+          "value": "IEEE Geoscience and Remote Sensing Letters"
+        },
+        "pdf": {
+          "value": "https://ieeexplore.ieee.org/iel7/8859/10365397/10439252.pdf"
+        },
+        "venueid": {
+          "value": "OpenReview.net/Public_Article"
+        },
+        "paperhash": {
+          "value": "zheng|explicit_changerelation_learning_for_change_detection_in_vhr_remote_sensing_images"
+        },
+        "html": {
+          "value": "https://doi.org/10.1109/LGRS.2024.3366981"
+        },
+        "abstract": {
+          "value": "Change detection is a concerned task in the interpretation of remote sensing images. The mining of the relationship on change features is usually implicit in the deep learning networks that contain single-branch or two-branch encoders. However, due to the lack of artificial prior design for the relationship on change features, these networks cannot learn enough semantic information on change features and lead to the poor performance. So, we propose a new network architecture explicit change-relation network (ECRNet) for the explicit mining of change-relation features. In our study of the literature, our suggestion is that the change features for change detection should be divided into prechanged image features, postchanged image features, and change-relation features. In order to fully mining these three kinds of change features, we propose the triple branch network combining the transformer and convolutional neural network (CNN) to extract and fuse these change features from two perspectives of global information and local information, respectively. In addition, we design the continuous change-relation (CCR) branch to further obtain the continuous and detailed change-relation features to improve the change discrimination capability of the model. The experimental results show that our network performs better than those of the existing advanced networks by the F1 score improvements of 0.66/0.37/0.70/1.09 on the very high-resolution (VHR) remote sensing datasets of the LEVIR-CD/SVCD/WHU-CD/SYSU-CD. Our source code is available at https://github.com/DalongZ/ECRNet."
+        },
+        "title": {
+          "value": "Explicit Change-Relation Learning for Change Detection in VHR Remote Sensing Images"
+        },
+        "authors": {
+          "value": [
+            {
+              "fullname": "Dalong Zheng"
+            },
+            {
+              "fullname": "Zebin Wu"
+            },
+            {
+              "fullname": "Jia Liu",
+              "username": "~Jia_Liu6"
+            },
+            {
+              "fullname": "Yang Xu"
+            },
+            {
+              "fullname": "Chih-Cheng Hung"
+            },
+            {
+              "fullname": "Zhihui Wei"
+            }
+          ]
+        }
+      },
+      "tmdate": 1789090632136,
+      "pdate": 1704067200000,
+      "externalIds": [
+        "doi:10.1109/lgrs.2024.3366981"
+      ],
+      "tcdate": 1763208959318,
+      "writers": [
+        "~",
+        "OpenReview.net/Public_Article/ORCID.org",
+        "OpenReview.net/Support"
+      ],
+      "signatures": [
+        "~Jia_Liu6"
+      ],
+      "forum": "jaMfQ93Kt9",
+      "license": "CC BY-SA 4.0",
+      "number": 16597,
+      "cdate": 1708375624269,
+      "readers": [
+        "everyone"
+      ],
+      "invitations": [
+        "OpenReview.net/Public_Article/ORCID.org/-/Record",
+        "OpenReview.net/Public_Article/-/Edit",
+        "OpenReview.net/-/Edit"
+      ],
+      "mdate": 1789090632136,
+      "domain": "OpenReview.net/Public_Article",
+      "id": "jaMfQ93Kt9",
+      "version": 2
+    }
+  ]
+}

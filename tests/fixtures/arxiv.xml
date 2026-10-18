@@ -1,0 +1,34 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<feed xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/" xmlns:arxiv="http://arxiv.org/schemas/atom" xmlns="http://www.w3.org/2005/Atom">
+  <id>https://arxiv.org/api/dpNEORQ2XrC5eNM0VN0cPuofcF4</id>
+  <title>arXiv Query: search_query=&amp;id_list=2503.19406&amp;start=0&amp;max_results=1</title>
+  <updated>2026-10-18T15:53:53Z</updated>
+  <link href="https://arxiv.org/api/query?search_query=&amp;start=0&amp;max_results=1&amp;id_list=2503.19406" type="application/atom+xml"/>
+  <opensearch:itemsPerPage>1</opensearch:itemsPerPage>
+  <opensearch:totalResults>1</opensearch:totalResults>
+  <opensearch:startIndex>0</opensearch:startIndex>
+  <entry>
+    <id>http://arxiv.org/abs/2503.19406v1</id>
+    <title>M$^2$CD: A Unified MultiModal Framework for Optical-SAR Change Detection with Mixture of Experts and Self-Distillation</title>
+    <updated>2025-03-25T07:31:53Z</updated>
+    <link href="https://arxiv.org/abs/2503.19406v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2503.19406v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Most existing change detection (CD) methods focus on optical images captured at different times, and deep learning (DL) has achieved remarkable success in this domain. However, in extreme scenarios such as disaster response, synthetic aperture radar (SAR), with its active imaging capability, is more suitable for providing post-event data. This introduces new challenges for CD methods, as existing weight-sharing Siamese networks struggle to effectively learn the cross-modal data distribution between optical and SAR images. To address this challenge, we propose a unified MultiModal CD framework, M$^2$CD. We integrate Mixture of Experts (MoE) modules into the backbone to explicitly handle diverse modalities, thereby enhancing the model's ability to learn multimodal data distributions. Additionally, we innovatively propose an Optical-to-SAR guided path (O2SP) and implement self-distillation during training to reduce the feature space discrepancy between different modalities, further alleviating the model's learning burden. We design multiple variants of M$^2$CD based on both CNN and Transformer backbones. Extensive experiments validate the effectiveness of the proposed framework, with the MiT-b1 version of M$^2$CD outperforming all state-of-the-art (SOTA) methods in optical-SAR CD tasks.</summary>
+    <category term="cs.CV" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2025-03-25T07:31:53Z</published>
+    <arxiv:comment>5 pages, 2 figures</arxiv:comment>
+    <arxiv:primary_category term="cs.CV"/>
+    <author>
+      <name>Ziyuan Liu</name>
+    </author>
+    <author>
+      <name>Jiawei Zhang</name>
+    </author>
+    <author>
+      <name>Wenyu Wang</name>
+    </author>
+    <author>
+      <name>Yuantao Gu</name>
+    </author>
+  </entry>
+</feed>
