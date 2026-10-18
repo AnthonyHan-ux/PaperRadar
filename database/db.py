@@ -23,11 +23,16 @@ from pathlib import Path
 from typing import Any, Iterable, Optional
 
 from models.paper import OaStatus, PdfCandidate, PdfStatus, Paper, clean_arxiv_id, clean_doi
-from utils.title_normalizer import normalize_title, title_similarity
+from utils.title_normalizer import (
+    normalize_title,
+    title_fingerprint,
+    title_similarity,
+)
 
 log = logging.getLogger(__name__)
 
 SCHEMA_PATH = Path(__file__).with_name("schema.sql")
+SCHEMA_VERSION = 2
 
 
 def _utc_now() -> str:
@@ -135,7 +140,96 @@ class Database:
         with self._write_lock:
             conn.executescript(schema)
             conn.commit()
-        log.info("database ready: %s", self.path)
+        self._migrate_schema()
+        log.info("database ready: %s (schema v%s)", self.path, self.schema_version)
+
+    # ------------------------------------------------------------------ #
+    # Schema versioning
+    # ------------------------------------------------------------------ #
+    @property
+    def schema_version(self) -> int:
+        try:
+            return int(self.get_meta("schema_version", "0") or 0)
+        except (TypeError, ValueError):
+            return 0
+
+    def _migrate_schema(self) -> None:
+        """Apply idempotent schema upgrades, backing up before changing data."""
+        columns = {
+            row["name"]
+            for row in self.connection.execute("PRAGMA table_info(papers)").fetchall()
+        }
+        if "title_key" in columns:
+            self.connection.execute(
+                "CREATE INDEX IF NOT EXISTS ix_papers_title_key ON papers(title_key)"
+            )
+            self.connection.execute(
+                "CREATE INDEX IF NOT EXISTS ix_papers_norm_title ON papers(normalized_title)"
+            )
+            if self.schema_version != SCHEMA_VERSION and self.count() > 0:
+                self.set_meta("schema_version", str(SCHEMA_VERSION))
+            elif self.schema_version != SCHEMA_VERSION:
+                self.set_meta("schema_version", str(SCHEMA_VERSION))
+            return
+
+        # --- upgrade from schema v1 (no title_key) --------------------- #
+        backup = self.backup(suffix="pre-migration") if self.count() > 0 else None
+        if backup is not None:
+            log.info("database backed up before schema upgrade: %s", backup)
+        self.connection.execute("ALTER TABLE papers ADD COLUMN title_key TEXT")
+        self.connection.commit()
+        self._backfill_title_keys()
+        self.connection.execute(
+            "CREATE INDEX IF NOT EXISTS ix_papers_title_key ON papers(title_key)"
+        )
+        self.connection.commit()
+        self.set_meta("schema_version", str(SCHEMA_VERSION))
+        self.set_meta("schema_migrated_at", _utc_now())
+        log.info("database upgraded to schema v%s", SCHEMA_VERSION)
+
+    def _backfill_title_keys(self) -> None:
+        rows = self.connection.execute(
+            "SELECT id, title FROM papers WHERE title_key IS NULL"
+        ).fetchall()
+        if not rows:
+            return
+        payload = [
+            (title_fingerprint(row["title"]), int(row["id"])) for row in rows
+        ]
+        with self._write_lock:
+            self.connection.executemany(
+                "UPDATE papers SET title_key = ? WHERE id = ?", payload
+            )
+            self.connection.commit()
+        log.info("backfilled title fingerprints for %d papers", len(payload))
+
+    def backup(self, suffix: str = "bak", keep: int = 3) -> Optional[Path]:
+        """Copy the database next to itself and prune old backups."""
+        import shutil
+
+        if not self.path.exists():
+            return None
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        target = self.path.with_name(f"{self.path.name}.{suffix}.{stamp}")
+        try:
+            self.connection.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            shutil.copy2(self.path, target)
+        except (OSError, sqlite3.Error) as exc:  # pragma: no cover - disk issues
+            log.warning("database backup failed: %s", exc)
+            return None
+        self._prune_backups(suffix=suffix, keep=keep)
+        return target
+
+    def _prune_backups(self, suffix: str = "bak", keep: int = 3) -> None:
+        try:
+            backups = sorted(self.path.parent.glob(f"{self.path.name}.{suffix}.*"))
+        except OSError:  # pragma: no cover
+            return
+        for old in backups[:-keep] if keep > 0 else []:
+            try:
+                old.unlink()
+            except OSError:  # pragma: no cover
+                pass
 
     def _execute(self, sql: str, params: Iterable[Any] = (), *, commit: bool = False,
                  retries: int = 5) -> sqlite3.Cursor:
@@ -205,6 +299,7 @@ class Database:
         return (
             paper.title,
             normalize_title(paper.title),
+            title_fingerprint(paper.title),
             _json(paper.authors),
             paper.year,
             paper.venue,
@@ -252,15 +347,17 @@ class Database:
         if row:
             return int(row["id"]), "title"
 
-        # Fuzzy: prefer records from the same/adjacent year, cap the scan.
-        year = paper.year
-        if year is not None:
-            rows = self._execute(
-                "SELECT id, title FROM papers WHERE year BETWEEN ? AND ? LIMIT 800",
-                (int(year) - 1, int(year) + 1),
-            ).fetchall()
-        else:
-            rows = self._execute("SELECT id, title FROM papers LIMIT 800").fetchall()
+        # Fuzzy pass over the fingerprint bucket only.  The bucket is keyed on
+        # the leading content words, so the cost depends on how many papers
+        # share that prefix — never on the size of the library — and it does not
+        # care about the publication year (arXiv vs journal versions often
+        # differ by one year).
+        key = title_fingerprint(paper.title)
+        if not key:
+            return None, ""
+        rows = self._execute(
+            "SELECT id, title FROM papers WHERE title_key = ? LIMIT 500", (key,)
+        ).fetchall()
 
         best_id: Optional[int] = None
         best_score = 0.0
@@ -327,11 +424,11 @@ class Database:
         )
         sql = """
             INSERT INTO papers (
-                title, normalized_title, authors, year, venue, doi, arxiv_id,
-                abstract, keywords, oa_status, pdf_status, local_path,
+                title, normalized_title, title_key, authors, year, venue, doi,
+                arxiv_id, abstract, keywords, oa_status, pdf_status, local_path,
                 source_url, pdf_urls, sources, citation_count, relevance_score,
                 discovered_at, updated_at, downloaded_at
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         """
         cursor = self._execute(sql, values, commit=True)
         paper.id = int(cursor.lastrowid or 0)
@@ -361,11 +458,11 @@ class Database:
         )
         sql = """
             UPDATE papers SET
-                title = ?, normalized_title = ?, authors = ?, year = ?, venue = ?,
-                doi = ?, arxiv_id = ?, abstract = ?, keywords = ?, oa_status = ?,
-                pdf_status = ?, local_path = ?, source_url = ?, pdf_urls = ?,
-                sources = ?, citation_count = ?, relevance_score = ?,
-                updated_at = ?, downloaded_at = ?
+                title = ?, normalized_title = ?, title_key = ?, authors = ?,
+                year = ?, venue = ?, doi = ?, arxiv_id = ?, abstract = ?,
+                keywords = ?, oa_status = ?, pdf_status = ?, local_path = ?,
+                source_url = ?, pdf_urls = ?, sources = ?, citation_count = ?,
+                relevance_score = ?, updated_at = ?, downloaded_at = ?
             WHERE id = ?
         """
         if conn is not None:

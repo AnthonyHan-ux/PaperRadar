@@ -82,6 +82,21 @@ def content_tokens(text: Optional[str]) -> list[str]:
     return [t for t in tokens(text) if t not in _STOPWORDS]
 
 
+def title_fingerprint(title: Optional[str], max_tokens: int = 3) -> str:
+    """Short blocking key used to find fuzzy-duplicate candidates cheaply.
+
+    Titles that name the same paper almost always share their leading content
+    words ("convolutional global context ..."), so grouping by the first few
+    tokens turns an O(n²) scan into a small bucket comparison.
+    """
+    if not title:
+        return ""
+    significant = content_tokens(title)
+    if not significant:
+        significant = tokens(title)
+    return " ".join(significant[:max(1, max_tokens)])
+
+
 def title_similarity(a: Optional[str], b: Optional[str]) -> float:
     """0-100 similarity between two titles.
 

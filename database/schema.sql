@@ -1,11 +1,13 @@
--- PaperRadar SQLite schema (V1)
+-- PaperRadar SQLite schema (V1.1, schema_version 2)
 -- Dedupe is enforced by three unique-ish keys: DOI, arXiv id and normalised
--- title.  SQLite treats NULLs as distinct, which is exactly what we want here.
+-- title, plus a title_key blocking bucket for fuzzy comparison.
+-- SQLite treats NULLs as distinct, which is exactly what we want here.
 
 CREATE TABLE IF NOT EXISTS papers (
     id                INTEGER PRIMARY KEY AUTOINCREMENT,
     title             TEXT    NOT NULL,
     normalized_title  TEXT    NOT NULL,
+    title_key         TEXT,                                 -- blocking key for fuzzy dedupe
     authors           TEXT    NOT NULL DEFAULT '[]',   -- JSON array
     year              INTEGER,
     venue             TEXT,
@@ -33,6 +35,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_papers_doi
 CREATE UNIQUE INDEX IF NOT EXISTS ux_papers_arxiv
     ON papers(arxiv_id) WHERE arxiv_id IS NOT NULL AND arxiv_id <> '';
 CREATE INDEX IF NOT EXISTS ix_papers_norm_title ON papers(normalized_title);
+-- ix_papers_title_key is created by Database._migrate_schema(), because old
+-- databases need the title_key column added before the index can exist.
 CREATE INDEX IF NOT EXISTS ix_papers_year ON papers(year);
 CREATE INDEX IF NOT EXISTS ix_papers_pdf_status ON papers(pdf_status);
 CREATE INDEX IF NOT EXISTS ix_papers_discovered ON papers(discovered_at);
