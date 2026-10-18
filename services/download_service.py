@@ -187,9 +187,12 @@ class DownloadService:
                 )
             outcome = self._attempt(paper, candidate, cancel_event, progress)
             attempts.append(outcome.attempt)
-            if outcome.attempt.http_status in (401, 403, 402):
+            # 401/403 means the file exists but access is refused -> blocked.
+            # 402/451 means the publisher wants money / is legally restricted
+            # -> paywalled.  Network failures and 5xx are neither.
+            if outcome.attempt.http_status in (401, 403):
                 blocked = True
-            if outcome.attempt.http_status == 451:
+            if outcome.attempt.http_status in (402, 451):
                 paywalled = True
             if outcome.result is not None:
                 result = outcome.result
@@ -214,7 +217,7 @@ class DownloadService:
         elif paywalled:
             status, message = (
                 PdfStatus.PAYWALLED_ONLY,
-                "出版社返回 451（法律/地区限制），只有付费版本可用",
+                "出版社返回 402/451（付费或法律/地区限制），只有付费版本可用",
             )
         elif last_validation is not None and last_validation.status == PdfStatus.WRONG_PAPER:
             status, message = (
@@ -285,8 +288,12 @@ class DownloadService:
                     content_type = response.headers.get("content-type", "").lower()
                     attempt.http_status = response_status
 
-                    if response_status in (401, 403, 402):
-                        attempt.reason = f"HTTP {response_status} 拒绝访问（反爬/付费墙）"
+                    if response_status in (401, 403):
+                        attempt.reason = f"HTTP {response_status} 拒绝访问（反爬/权限）"
+                        attempt.elapsed = time.monotonic() - started
+                        return _AttemptOutcome(attempt=attempt)
+                    if response_status in (402, 451):
+                        attempt.reason = f"HTTP {response_status} 付费墙/法律限制"
                         attempt.elapsed = time.monotonic() - started
                         return _AttemptOutcome(attempt=attempt)
                     if response_status in (404, 410):

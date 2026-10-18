@@ -55,6 +55,9 @@ def server():
         "/wrong.pdf": (200, "application/pdf", wrong),
         "/html": (200, "text/html", b"<html><body>Please log in</body></html>"),
         "/forbidden": (403, "text/html", b"<html>Forbidden</html>"),
+        "/payment": (402, "text/html", b"<html>Payment required</html>"),
+        "/legal": (451, "text/html", b"<html>Unavailable for legal reasons</html>"),
+        "/broken": (500, "text/plain", b"server error"),
     }
     httpd = ThreadingHTTPServer(("127.0.0.1", 0), _Handler)
     thread = threading.Thread(target=httpd.serve_forever, daemon=True)
@@ -71,6 +74,7 @@ def server():
 def downloader(settings):
     settings.config["download"]["min_pdf_bytes"] = 500
     settings.config["download"]["request_timeout_seconds"] = 20
+    settings.config["api"]["max_retries"] = 0  # keep failure tests fast
     service = DownloadService(settings)
     yield service
     service.close()
@@ -161,3 +165,37 @@ def test_cancellation_stops_download(server, downloader):
     result = downloader.download(paper, cancel_event=event)
     assert result.status == PdfStatus.DOWNLOAD_FAILED
     assert "取消" in result.message
+
+
+def test_payment_required_is_paywalled(server, downloader):
+    paper = _paper(TITLE, f"{server}/payment")
+    result = downloader.download(paper)
+    assert result.status == PdfStatus.PAYWALLED_ONLY
+    assert result.attempts[0].http_status == 402
+
+
+def test_legal_restriction_is_paywalled(server, downloader):
+    paper = _paper(TITLE, f"{server}/legal")
+    result = downloader.download(paper)
+    assert result.status == PdfStatus.PAYWALLED_ONLY
+    assert result.attempts[0].http_status == 451
+
+
+def test_server_error_is_not_blocked(server, downloader):
+    paper = _paper(TITLE, f"{server}/broken")
+    result = downloader.download(paper)
+    assert result.status == PdfStatus.DOWNLOAD_FAILED
+    assert result.status != PdfStatus.PUBLIC_BUT_BLOCKED
+    assert result.attempts[0].http_status == 500
+
+
+def test_network_error_is_not_blocked(downloader):
+    # Port 1 on localhost is closed.  Depending on the proxy configuration this
+    # surfaces as a connection error or a 502 from the proxy, but it must never
+    # be classified as "public but blocked".
+    paper = _paper(TITLE, "http://127.0.0.1:1/paper.pdf")
+    result = downloader.download(paper)
+    assert result.status == PdfStatus.DOWNLOAD_FAILED
+    assert result.status != PdfStatus.PUBLIC_BUT_BLOCKED
+    status = result.attempts[0].http_status
+    assert status is None or status >= 500

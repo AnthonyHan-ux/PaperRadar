@@ -99,6 +99,8 @@ def test_no_public_copy_found(settings):
     finder = OAFinder(settings, {})
     finding = finder.find(paper)
     assert finding.status == PdfStatus.NO_PUBLIC_COPY_FOUND
+    # No structured evidence -> OA state must stay UNKNOWN, never CLOSED.
+    assert paper.oa_status == OaStatus.UNKNOWN
 
 
 def test_existing_candidates_are_reused(settings, sample_paper):
@@ -132,3 +134,4 @@ def test_unavailable_provider_is_skipped(settings):
     )
     finding = finder.find(paper)
     assert finding.status == PdfStatus.NO_PUBLIC_COPY_FOUND
+    assert paper.oa_status == OaStatus.UNKNOWN

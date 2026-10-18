@@ -102,16 +102,20 @@ class OAFinder:
             if paper.oa_status == OaStatus.UNKNOWN:
                 paper.oa_status = OaStatus.OPEN_ACCESS
         elif finding.paywalled_evidence or paper.oa_status == OaStatus.CLOSED:
+            # Only structured evidence (OpenAlex/Unpaywall explicitly closed)
+            # is allowed to promote "nothing found" to PAYWALLED_ONLY.
             finding.status = PdfStatus.PAYWALLED_ONLY
             if not paper.pdf_status.has_local_file:
                 paper.pdf_status = PdfStatus.PAYWALLED_ONLY
             paper.oa_status = OaStatus.CLOSED
         else:
+            # No candidate and no evidence either way: stay UNKNOWN.  Saying
+            # "paywalled" here would be a lie we cannot back up.
             finding.status = PdfStatus.NO_PUBLIC_COPY_FOUND
             if not paper.pdf_status.has_local_file:
                 paper.pdf_status = PdfStatus.NO_PUBLIC_COPY_FOUND
-            if paper.oa_status == OaStatus.UNKNOWN:
-                paper.oa_status = OaStatus.CLOSED
+            if paper.oa_status not in (OaStatus.UNKNOWN,):
+                paper.oa_status = OaStatus.UNKNOWN
 
         log.info(
             "OA resolve: %s | %s | %s",

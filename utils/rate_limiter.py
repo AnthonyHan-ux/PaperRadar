@@ -114,7 +114,7 @@ class JsonCache:
             with self._lock:
                 raw = json.loads(path.read_text(encoding="utf-8"))
             max_age = self.ttl_seconds if ttl is None else ttl
-            if time.time() - float(raw.get("created", 0)) > max_age:
+            if max_age <= 0 or time.time() - float(raw.get("created", 0)) > max_age:
                 return None
             return raw.get("payload")
         except (OSError, ValueError, json.JSONDecodeError):
