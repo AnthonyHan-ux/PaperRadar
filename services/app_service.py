@@ -330,6 +330,15 @@ class AppService:
         if paper.id is None:
             return
         try:
+            attempts = getattr(result, "attempts", None) or []
+            http_status = None
+            for attempt in attempts:
+                if attempt.url == result.used_url:
+                    http_status = attempt.http_status
+                    break
+            if http_status is None and attempts:
+                http_status = attempts[-1].http_status
+
             self.db.update_download_state(
                 paper.id, result.status, paper.local_pdf_path, paper.oa_status
             )
@@ -339,6 +348,7 @@ class AppService:
                 url=result.used_url,
                 provider=result.provider,
                 reason=result.message,
+                http_status=http_status,
             )
             if result.ok and result.path:
                 paper.local_pdf_path = str(result.path)

@@ -102,12 +102,17 @@ def main(argv: list[str] | None = None) -> int:
 
     import argparse
 
+    from utils.config import APP_VERSION
+
     parser = argparse.ArgumentParser(
         prog="PaperRadar",
         description="遥感文献雷达（不带参数启动图形界面；加 --cli 使用命令行）",
     )
     parser.add_argument("--home", help="数据目录")
     parser.add_argument("--log-level", default=None, help="DEBUG/INFO/WARNING")
+    parser.add_argument(
+        "--version", action="version", version=f"PaperRadar {APP_VERSION}"
+    )
     parser.add_argument("--smoke", metavar="PNG", default=None,
                         help="启动后截图并退出（用于打包自检）")
     parser.add_argument("--cli", action="store_true", help=argparse.SUPPRESS)

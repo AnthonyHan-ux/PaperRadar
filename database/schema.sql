@@ -76,6 +76,7 @@ CREATE TABLE IF NOT EXISTS download_logs (
     oa_status  TEXT,
     status     TEXT    NOT NULL,
     reason     TEXT,
+    http_status INTEGER,
     created_at TEXT    NOT NULL
 );
 

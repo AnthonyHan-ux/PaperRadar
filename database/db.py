@@ -32,7 +32,7 @@ from utils.title_normalizer import (
 log = logging.getLogger(__name__)
 
 SCHEMA_PATH = Path(__file__).with_name("schema.sql")
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 
 def _utc_now() -> str:
@@ -199,37 +199,50 @@ class Database:
 
     def _migrate_schema(self) -> None:
         """Apply idempotent schema upgrades, backing up before changing data."""
-        columns = {
+        paper_columns = {
             row["name"]
             for row in self.connection.execute("PRAGMA table_info(papers)").fetchall()
         }
-        if "title_key" in columns:
-            self.connection.execute(
-                "CREATE INDEX IF NOT EXISTS ix_papers_title_key ON papers(title_key)"
-            )
-            self.connection.execute(
-                "CREATE INDEX IF NOT EXISTS ix_papers_norm_title ON papers(normalized_title)"
-            )
-            if self.schema_version != SCHEMA_VERSION and self.count() > 0:
-                self.set_meta("schema_version", str(SCHEMA_VERSION))
-            elif self.schema_version != SCHEMA_VERSION:
-                self.set_meta("schema_version", str(SCHEMA_VERSION))
-            return
+        log_columns = {
+            row["name"]
+            for row in self.connection.execute(
+                "PRAGMA table_info(download_logs)"
+            ).fetchall()
+        }
+        add_title_key = "title_key" not in paper_columns
+        add_http_status = "http_status" not in log_columns
 
-        # --- upgrade from schema v1 (no title_key) --------------------- #
-        backup = self.backup(suffix="pre-migration") if self.count() > 0 else None
-        if backup is not None:
-            log.info("database backed up before schema upgrade: %s", backup)
-        self.connection.execute("ALTER TABLE papers ADD COLUMN title_key TEXT")
-        self.connection.commit()
-        self._backfill_title_keys()
+        if add_title_key or add_http_status:
+            backup = self.backup(suffix="pre-migration") if self.count() > 0 else None
+            if backup is not None:
+                log.info("database backed up before schema upgrade: %s", backup)
+
+            if add_title_key:
+                self.connection.execute("ALTER TABLE papers ADD COLUMN title_key TEXT")
+                self.connection.commit()
+                self._backfill_title_keys()
+                self.connection.execute(
+                    "CREATE INDEX IF NOT EXISTS ix_papers_title_key ON papers(title_key)"
+                )
+                log.info("schema: added papers.title_key")
+            if add_http_status:
+                self.connection.execute(
+                    "ALTER TABLE download_logs ADD COLUMN http_status INTEGER"
+                )
+                log.info("schema: added download_logs.http_status")
+            self.connection.commit()
+            self.set_meta("schema_migrated_at", _utc_now())
+
         self.connection.execute(
             "CREATE INDEX IF NOT EXISTS ix_papers_title_key ON papers(title_key)"
         )
+        self.connection.execute(
+            "CREATE INDEX IF NOT EXISTS ix_papers_norm_title ON papers(normalized_title)"
+        )
         self.connection.commit()
-        self.set_meta("schema_version", str(SCHEMA_VERSION))
-        self.set_meta("schema_migrated_at", _utc_now())
-        log.info("database upgraded to schema v%s", SCHEMA_VERSION)
+
+        if self.schema_version != SCHEMA_VERSION:
+            self.set_meta("schema_version", str(SCHEMA_VERSION))
 
     def _backfill_title_keys(self) -> None:
         rows = self.connection.execute(
@@ -734,17 +747,30 @@ class Database:
         url: str = "",
         provider: str = "",
         reason: str = "",
+        http_status: Optional[int] = None,
     ) -> None:
         try:
             self._execute(
-                "INSERT INTO download_logs (paper_id, title, url, provider, oa_status, status, reason, created_at)"
-                " VALUES (?,?,?,?,?,?,?,?)",
+                "INSERT INTO download_logs"
+                " (paper_id, title, url, provider, oa_status, status, reason, http_status, created_at)"
+                " VALUES (?,?,?,?,?,?,?,?,?)",
                 (paper.id, paper.title[:500], url[:2000], provider,
-                 paper.oa_status.value, status, reason[:1000], _utc_now()),
+                 paper.oa_status.value, status, reason[:1000], http_status, _utc_now()),
                 commit=True,
             )
         except sqlite3.Error as exc:  # pragma: no cover
             log.debug("cannot log download: %s", exc)
+
+    def download_logs(self, limit: int = 5000) -> list[sqlite3.Row]:
+        """Download history joined with the paper's DOI and local path."""
+        return self._execute(
+            "SELECT d.id, d.paper_id, d.title, d.url, d.provider, d.status,"
+            " d.reason, d.http_status, d.created_at,"
+            " p.doi AS doi, p.local_path AS local_path"
+            " FROM download_logs d LEFT JOIN papers p ON p.id = d.paper_id"
+            " ORDER BY d.id DESC LIMIT ?",
+            (max(1, limit),),
+        ).fetchall()
 
     def add_search_history(
         self, query: str, mode: str, filters: dict[str, Any], result_count: int

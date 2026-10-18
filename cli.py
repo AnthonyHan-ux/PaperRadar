@@ -22,8 +22,21 @@ from typing import Iterable, Optional
 from models.paper import Paper, PdfStatus, SearchMode
 from providers.base import SearchQuery
 from services.app_service import AppService
-from utils.config import Settings, load_settings
+from utils.config import APP_VERSION, Settings, load_settings
 from utils.title_normalizer import title_similarity
+
+
+def _configure_stdio() -> None:
+    """Make Chinese output readable in Windows consoles / redirected pipes."""
+    for stream_name in ("stdout", "stderr"):
+        stream = getattr(sys, stream_name, None)
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is None:
+            continue
+        try:
+            reconfigure(encoding="utf-8", errors="replace")
+        except (ValueError, OSError):  # pragma: no cover - exotic streams
+            pass
 
 AUDIT_FIELDS = [
     "index", "input_title", "status", "pdf_status", "matched_title", "match_score",
@@ -323,6 +336,12 @@ def _write_audit(path: Path, papers: list[Paper], results, pairs) -> None:
             })
 
 
+DOWNLOAD_LOG_FIELDS = [
+    "id", "timestamp", "title", "doi", "provider", "status", "reason",
+    "http_status", "url", "local_path",
+]
+
+
 def cmd_stats(service: AppService, args, settings: Settings) -> int:
     stats = service.stats()
     count, total_bytes = service.library.disk_usage()
@@ -334,7 +353,38 @@ def cmd_stats(service: AppService, args, settings: Settings) -> int:
     print("状态分布：")
     for status, number in sorted(stats.by_status.items()):
         print(f"  {status:<22} {number}")
+
+    if getattr(args, "downloads_csv", None):
+        rows = service.db.download_logs(limit=100000)
+        target = Path(args.downloads_csv)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with open(target, "w", encoding="utf-8-sig", newline="") as handle:
+            writer = csv.DictWriter(handle, fieldnames=DOWNLOAD_LOG_FIELDS)
+            writer.writeheader()
+            for row in rows:
+                writer.writerow({
+                    "id": row["id"],
+                    "timestamp": row["created_at"],
+                    "title": row["title"] or "",
+                    "doi": row["doi"] or "",
+                    "provider": row["provider"] or "",
+                    "status": row["status"] or "",
+                    "reason": row["reason"] or "",
+                    "http_status": "" if row["http_status"] is None else row["http_status"],
+                    "url": row["url"] or "",
+                    "local_path": row["local_path"] or "",
+                })
+        print(f"下载日志 CSV → {target}（{len(rows)} 条）")
     return 0
+
+
+def cmd_cache(service: AppService, args, settings: Settings) -> int:
+    if args.action == "clear":
+        removed = service.clear_cache()
+        print(f"已清理缓存 {removed} 个文件（数据库与文献库未受影响）")
+        return 0
+    print("用法：cache clear")
+    return 2
 
 
 def cmd_profile(service: AppService, args, settings: Settings) -> int:
@@ -365,7 +415,10 @@ def cmd_export(service: AppService, args, settings: Settings) -> int:
 # --------------------------------------------------------------------------- #
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="PaperRadar", description="PaperRadar CLI")
-    parser.add_argument("--home", help="数据目录（默认 exe/项目根目录）")
+    parser.add_argument("--home", help="数据目录（默认 %%LOCALAPPDATA%%\\PaperRadar\\data）")
+    parser.add_argument(
+        "--version", action="version", version=f"PaperRadar {APP_VERSION}"
+    )
     sub = parser.add_subparsers(dest="command")
 
     search = sub.add_parser("search", help="检索论文")
@@ -401,7 +454,15 @@ def build_parser() -> argparse.ArgumentParser:
     audit.set_defaults(func=cmd_audit)
 
     stats = sub.add_parser("stats", help="显示数据库统计")
+    stats.add_argument(
+        "--downloads-csv", default=None,
+        help="把下载日志导出为 CSV（title/doi/url/provider/status/reason/http_status/time）",
+    )
     stats.set_defaults(func=cmd_stats)
+
+    cache = sub.add_parser("cache", help="缓存管理")
+    cache.add_argument("action", choices=["clear"], help="clear = 只清缓存，不动数据库/文献库")
+    cache.set_defaults(func=cmd_cache)
 
     profile = sub.add_parser("profile", help="显示研究画像")
     profile.set_defaults(func=cmd_profile)
@@ -415,6 +476,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Optional[list[str]] = None) -> int:
+    _configure_stdio()
     parser = build_parser()
     args = parser.parse_args(argv)
     if not getattr(args, "command", None):
