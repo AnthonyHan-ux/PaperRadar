@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 import time
-from concurrent.futures import ThreadPoolExecutor, wait
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -57,6 +57,7 @@ class ProviderReport:
     elapsed: float = 0.0
     error: str = ""
     skipped: str = ""
+    timed_out: bool = False
 
     @property
     def ok(self) -> bool:
@@ -137,9 +138,16 @@ class SearchService:
             return outcome
 
         results: dict[str, list[Paper]] = {}
-        timeout = float(
+        provider_timeout = float(
             self.settings.search_cfg.get("provider_timeout_seconds", 40)
-        ) * 1.5
+        )
+        # Hard wall-clock ceiling for the whole fan-out.  A provider that
+        # ignores its own HTTP timeouts (or a provider that is simply slow)
+        # must never extend this, which is why the executor is *not* used as a
+        # context manager: exiting the ``with`` block would call
+        # ``shutdown(wait=True)`` and block on the very thread we gave up on.
+        budget = max(0.05, provider_timeout * 1.5)
+        deadline = time.monotonic() + budget
 
         def run(provider: SearchProvider):
             begin = time.monotonic()
@@ -152,30 +160,49 @@ class SearchService:
                 log.exception("provider %s crashed", provider.name)
                 return provider, [], time.monotonic() - begin, f"{type(exc).__name__}: {exc}"
 
-        with ThreadPoolExecutor(max_workers=min(6, len(active)),
-                                thread_name_prefix="search") as pool:
-            futures = {pool.submit(run, provider): provider for provider in active}
-            done, not_done = wait(futures, timeout=timeout)
-            for future in done:
-                provider, found, elapsed, error = future.result()
-                results[provider.name] = found
-                outcome.reports.append(
-                    ProviderReport(
-                        provider=provider.name,
-                        display_name=provider.display_name,
-                        count=len(found),
-                        elapsed=elapsed,
-                        error=error,
-                    )
+        executor = ThreadPoolExecutor(
+            max_workers=min(6, len(active)), thread_name_prefix="search"
+        )
+        pending = {executor.submit(run, provider): provider for provider in active}
+        try:
+            while pending:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    break
+                done, _ = wait(
+                    pending.keys(), timeout=remaining, return_when=FIRST_COMPLETED
                 )
-            for future in not_done:
-                provider = futures[future]
+                if not done:
+                    break
+                for future in done:
+                    provider = pending.pop(future)
+                    try:
+                        _provider, found, elapsed, error = future.result()
+                    except Exception as exc:  # pragma: no cover - defensive
+                        found, elapsed, error = [], 0.0, f"{type(exc).__name__}: {exc}"
+                    results[provider.name] = found
+                    outcome.reports.append(
+                        ProviderReport(
+                            provider=provider.name,
+                            display_name=provider.display_name,
+                            count=len(found),
+                            elapsed=elapsed,
+                            error=error,
+                        )
+                    )
+        finally:
+            # Everything still pending at this point missed the deadline.
+            leftovers = list(pending.items())
+            for future, _provider in leftovers:
                 future.cancel()
+            executor.shutdown(wait=False, cancel_futures=True)
+            for _future, provider in leftovers:
                 outcome.reports.append(
                     ProviderReport(
                         provider=provider.name,
                         display_name=provider.display_name,
-                        error=f"超时（>{timeout:.0f}s）",
+                        error=f"provider_timeout（>{budget:.1f}s）",
+                        timed_out=True,
                     )
                 )
 
