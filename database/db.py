@@ -68,6 +68,10 @@ class Database:
         self.path = Path(db_path)
         self._local = threading.local()
         self._write_lock = threading.Lock()
+        # Every connection ever opened, so that shutdown can release Windows
+        # file handles held by QThreadPool worker threads.
+        self._conn_lock = threading.Lock()
+        self._connections: set[sqlite3.Connection] = set()
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._initialise()
 
@@ -76,22 +80,53 @@ class Database:
     def connection(self) -> sqlite3.Connection:
         conn = getattr(self._local, "conn", None)
         if conn is None:
-            conn = sqlite3.connect(str(self.path), timeout=20.0)
+            # check_same_thread=False is required so shutdown (main thread) can
+            # close connections opened by QThreadPool workers; each connection
+            # is still used by exactly one thread at a time.
+            conn = sqlite3.connect(str(self.path), timeout=20.0, check_same_thread=False)
             conn.row_factory = sqlite3.Row
             conn.execute("PRAGMA foreign_keys = ON")
             conn.execute("PRAGMA busy_timeout = 8000")
             conn.execute("PRAGMA synchronous = NORMAL")
             self._local.conn = conn
+            with self._conn_lock:
+                self._connections.add(conn)
         return conn
 
-    def close(self) -> None:
+    def close_thread(self) -> None:
+        """Close the calling thread's connection (worker threads call this)."""
         conn = getattr(self._local, "conn", None)
-        if conn is not None:
+        if conn is None:
+            return
+        self._local.conn = None
+        with self._conn_lock:
+            self._connections.discard(conn)
+        try:
+            conn.close()
+        except sqlite3.Error as exc:  # pragma: no cover - defensive
+            log.debug("close_thread failed: %s", exc)
+        except Exception as exc:  # pragma: no cover - defensive
+            log.debug("close_thread failed: %s", exc)
+
+    # Backwards-compatible name used by older call sites.
+    def close(self) -> None:
+        self.close_thread()
+
+    def close_all(self) -> None:
+        """Close every connection opened by any thread.
+
+        Called on application shutdown; without this, worker-thread connections
+        keep ``paperradar.db`` locked on Windows, which breaks backup/migration.
+        """
+        self.close_thread()
+        with self._conn_lock:
+            connections = list(self._connections)
+            self._connections.clear()
+        for conn in connections:
             try:
                 conn.close()
-            except sqlite3.Error:
-                pass
-            self._local.conn = None
+            except Exception as exc:  # pragma: no cover - defensive
+                log.debug("close_all failed for a connection: %s", exc)
 
     def _initialise(self) -> None:
         conn = self.connection

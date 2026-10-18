@@ -85,7 +85,7 @@ class AppService:
         except Exception:
             pass
         try:
-            self.db.close()
+            self.db.close_all()
         except Exception:
             pass
         log.info("PaperRadar closed")
@@ -94,22 +94,27 @@ class AppService:
     # Search
     # ------------------------------------------------------------------ #
     def run_search(self, query: SearchQuery, mark_existing: bool = True) -> SearchOutcome:
-        outcome = self.search_service.search(query)
-        if mark_existing:
-            self.mark_existing(outcome.papers)
         try:
-            self.db.add_search_history(
-                query.text, query.mode.value,
-                {
-                    "year_from": query.year_from,
-                    "year_to": query.year_to,
-                    "venues": query.venues,
-                },
-                len(outcome.papers),
-            )
-        except Exception as exc:  # pragma: no cover - history is optional
-            log.debug("search history failed: %s", exc)
-        return outcome
+            outcome = self.search_service.search(query)
+            if mark_existing:
+                self.mark_existing(outcome.papers)
+            try:
+                self.db.add_search_history(
+                    query.text, query.mode.value,
+                    {
+                        "year_from": query.year_from,
+                        "year_to": query.year_to,
+                        "venues": query.venues,
+                    },
+                    len(outcome.papers),
+                )
+            except Exception as exc:  # pragma: no cover - history is optional
+                log.debug("search history failed: %s", exc)
+            return outcome
+        finally:
+            # The GUI runs this on a QThreadPool thread; close its connection so
+            # the database file is never held by a pooled thread.
+            self.db.close_thread()
 
     def search_profile(self, limit: Optional[int] = None,
                        year_from: Optional[int] = None,
@@ -168,11 +173,14 @@ class AppService:
     ) -> DownloadResult:
         if auto_resolve and not paper.pdf_candidates:
             self.oa_finder.find(paper)
-        result = self.downloader.download(
-            paper, paper.pdf_candidates, cancel_event=cancel_event, progress=progress
-        )
-        self._persist_download(result, paper)
-        return result
+        try:
+            result = self.downloader.download(
+                paper, paper.pdf_candidates, cancel_event=cancel_event, progress=progress
+            )
+            self._persist_download(result, paper)
+            return result
+        finally:
+            self.db.close_thread()
 
     def download_many(
         self,
@@ -228,7 +236,10 @@ class AppService:
                 pending.append(paper)
 
         def handle_result(res: DownloadResult) -> None:
-            self._persist_download(res, res.paper)
+            try:
+                self._persist_download(res, res.paper)
+            finally:
+                self.db.close_thread()
             if on_result is not None:
                 try:
                     on_result(res)
