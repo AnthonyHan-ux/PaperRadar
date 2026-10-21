@@ -4,7 +4,9 @@
 
 ## 快速开始（源码）
 
-推荐 Windows 10/11、Python 3.12。克隆仓库后运行：
+先安装 [Git for Windows](https://git-scm.com/downloads/win) 和 **64 位 Python 3.12**（Windows 10/11 x64），确认 `py -3.12 --version` 能输出版本号。
+
+完整步骤及常见问题见 [Windows 源码安装指南](docs/INSTALL_WINDOWS.md)。GitHub 的 Code → Download ZIP 也是源码，解压后在包含 `main.py` 的目录打开终端，略过下面的 `git clone` 和 `cd` 两行。克隆用户运行：
 
 ```powershell
 git clone https://github.com/AnthonyHan-ux/PaperRadar.git
@@ -14,16 +16,24 @@ py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe main.py
 ```
 
+依赖下载慢、超时或下载不完整时，可保持原环境，换用清华镜像重新安装：
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+```
+
 命令行检索和离线测试：
 
 ```powershell
-.\.venv\Scripts\python.exe cli.py search -q "medical image segmentation" --limit 20
+.\.venv\Scripts\python.exe main.py --cli search -q "medical image segmentation" --limit 20
 .\.venv\Scripts\python.exe -m pytest tests -q
 ```
 
 仓库保存源码和默认配置模板；运行数据、个人配置、PDF、缓存和打包产物不会上传。用户数据默认保存在 `%LOCALAPPDATA%\PaperRadar\data`。API 凭据只在本机设置，模板中的凭据字段保持为空。
 
 需要 Windows 可执行程序时，请按第 9 节运行 `build.ps1`；`Start-PaperRadar.bat` 和 `Check-PaperRadar.bat` 适用于已安装到 `%LOCALAPPDATA%\Programs\PaperRadar-1.3.1` 的本机版本。首次使用源码请按上述命令启动。
+
+全新环境的实际验证结果见 [源码安装验证记录](docs/VALIDATION_INSTALL.md)。
 
 ## 当前版本
 
@@ -47,7 +57,9 @@ py -3.12 -m venv .venv
 
 ---
 
-## 1. 安装与启动
+## 1. 编译后的程序启动
+
+本节用于自行打包得到的程序目录；直接克隆或下载源码 ZIP 时，请使用上面的源码启动命令，源码中不附带 exe。
 
 1. 解压整个 `PaperRadar` 文件夹（**不要只拿 exe**，`_internal` 是运行依赖）。
 2. 双击 `PaperRadar.exe`。
@@ -217,7 +229,7 @@ V1.0 把数据放在程序目录（`<程序目录>\database`、`library`、`conf
 ## 9. 从源码运行 / 打包
 
 ```powershell
-python -m venv .venv
+py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe main.py
 
