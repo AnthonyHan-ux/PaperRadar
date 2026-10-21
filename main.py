@@ -198,6 +198,10 @@ def _run_gui(home: str | None = None, log_level: str | None = None,
         return app.exec()
     except Exception as exc:  # startup failure: show it instead of dying silently
         traceback.print_exc()
+        if smoke_path or selftest_path:
+            # Automated checks must fail explicitly instead of opening a
+            # hidden modal dialog and waiting indefinitely for user input.
+            return 1
         try:
             QMessageBox.critical(
                 None,

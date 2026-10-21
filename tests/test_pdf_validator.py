@@ -87,7 +87,7 @@ def test_scanned_pdf_without_text_layer_warns(tmp_path, validator, sample_paper)
     assert "文本层" in result.reason
 
 
-def test_doi_in_first_page_validates_even_with_odd_title(tmp_path, validator):
+def test_doi_does_not_override_unrelated_title(tmp_path, validator):
     paper = Paper(
         title="Optical SAR Change Detection with Robust Fusion",
         doi="10.1109/TGRS.2025.123456",
@@ -98,8 +98,7 @@ def test_doi_in_first_page_validates_even_with_odd_title(tmp_path, validator):
         "Some unrelated heading text\nDOI: 10.1109/TGRS.2025.123456\nmore text",
     )
     result = validator.validate(path, paper)
-    assert result.status == PdfStatus.VALIDATED
-    assert "DOI" in result.reason
+    assert result.status == PdfStatus.WRONG_PAPER
 
 
 def test_missing_file_reports_invalid(tmp_path, validator, sample_paper):

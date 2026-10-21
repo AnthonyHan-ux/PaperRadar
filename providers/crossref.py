@@ -8,24 +8,28 @@ open-access PDF (that is Unpaywall/OpenAlex territory).
 
 from __future__ import annotations
 
+from urllib.parse import quote
+
 import logging
 from typing import Any, Optional
 
 from models.paper import Paper, SearchMode
 from providers.base import ProviderError, SearchProvider, SearchQuery
 from utils.title_normalizer import clean_text_block
+from utils.publication_dates import date_from_parts
+from utils.search_catalog import find_suggestion
 
 log = logging.getLogger(__name__)
 
 BASE_URL = "https://api.crossref.org"
 SELECT = (
-    "DOI,title,author,issued,container-title,abstract,URL,"
+    "DOI,title,author,issued,published,container-title,abstract,URL,"
     "is-referenced-by-count,type,link,event,publisher,short-container-title"
 )
 
 
 def _year_from_item(item: dict[str, Any]) -> Optional[int]:
-    for key in ("issued", "published-print", "published-online", "created"):
+    for key in ('published', 'issued', 'published-print', 'published-online', 'created'):
         date = item.get(key) or {}
         parts = date.get("date-parts") or []
         if parts and parts[0]:
@@ -42,6 +46,15 @@ def _first(value: Any) -> str:
     if isinstance(value, str):
         return clean_text_block(value)
     return ""
+
+
+def _publication_date(item: dict[str, Any]) -> Optional[str]:
+    for key in ('published', 'issued', 'published-online', 'published-print'):
+        parts = (item.get(key) or {}).get('date-parts') or []
+        value = date_from_parts(parts[0]) if parts else None
+        if value:
+            return value
+    return None
 
 
 def _format_author(author: dict[str, Any]) -> str:
@@ -81,6 +94,7 @@ def parse_item(item: dict[str, Any], source: str = "crossref") -> Optional[Paper
         title=title,
         authors=authors,
         year=_year_from_item(item),
+        publication_date=_publication_date(item),
         venue=venue or None,
         doi=doi,
         abstract=clean_text_block(item.get("abstract") or ""),
@@ -111,10 +125,17 @@ class CrossrefProvider(SearchProvider):
             params["mailto"] = self.settings.mailto
 
         date_filters: list[str] = []
-        if query.year_from:
-            date_filters.append(f"from-pub-date:{int(query.year_from)}-01-01")
-        if query.year_to:
-            date_filters.append(f"until-pub-date:{int(query.year_to)}-12-31")
+        if query.start_date:
+            date_filters.append(f"from-pub-date:{query.start_date}")
+        if query.end_date:
+            date_filters.append(f"until-pub-date:{query.end_date}")
+        if len(query.venues) == 1 and not any(char in query.venues[0] for char in ',:'):
+            venue = query.venues[0]
+            known = find_suggestion(venue, 'venues')
+            if known and known.get('kind') == 'journal':
+                date_filters.append('container-title:' + known['value'])
+            else:
+                params['query.container-title'] = venue
         if date_filters:
             params["filter"] = ",".join(date_filters)
         return params
@@ -127,7 +148,9 @@ class CrossrefProvider(SearchProvider):
             return []
 
         params = self._params(query)
-        if query.mode == SearchMode.TITLE:
+        if not query.text:
+            params['sort'] = 'published'
+        elif query.mode == SearchMode.TITLE:
             params["query.title"] = query.text
         elif query.mode == SearchMode.AUTHOR:
             params["query.author"] = query.text
@@ -146,19 +169,22 @@ class CrossrefProvider(SearchProvider):
         return papers
 
     def _by_doi(self, query: SearchQuery) -> list[Paper]:
-        doi = query.text.strip()
+        from models.paper import clean_doi
+
+        doi = clean_doi(query.text)
         if not doi:
             return []
-        params = {"select": SELECT}
+        params = {}
         if self.settings.mailto:
             params["mailto"] = self.settings.mailto
         try:
             data = self.http.get_json(
-                f"{BASE_URL}/works/{doi}", params, limiter_key="crossref", retries=2
+                f"{BASE_URL}/works/{quote(doi, safe='/')}", params, limiter_key="crossref", retries=2
             )
         except ProviderError as exc:
-            log.debug("Crossref DOI lookup failed for %s: %s", doi, exc)
-            return []
+            if exc.status == 404:
+                return []
+            raise
         message = data.get("message") or {}
         paper = parse_item(message)
         return [paper] if paper else []

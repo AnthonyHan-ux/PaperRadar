@@ -16,6 +16,8 @@ import csv
 import json
 import sys
 import time
+from collections import Counter
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, Optional
 
@@ -41,6 +43,7 @@ def _configure_stdio() -> None:
 AUDIT_FIELDS = [
     "index", "input_title", "status", "pdf_status", "matched_title", "match_score",
     "year", "venue", "doi", "arxiv_id", "oa_status", "path", "url", "message", "elapsed_s",
+    "attempt", "attempted_at",
 ]
 
 
@@ -136,7 +139,14 @@ def _existing_audit_keys(path: Path) -> set[str]:
             for row in csv.DictReader(handle):
                 value = (row.get("input_title") or "").strip()
                 if value:
-                    keys.add(value.lower())
+                    key = value.casefold()
+                    # Later attempts supersede earlier rows. Unverified files,
+                    # no-match results, blocked links and errors are retryable.
+                    keys.discard(key)
+                    if (row.get("status") == "FOUND"
+                            and row.get("pdf_status") == PdfStatus.VALIDATED.value
+                            and (not row.get('path') or Path(row['path']).is_file())):
+                        keys.add(key)
     except (OSError, csv.Error):
         pass
     return keys
@@ -151,10 +161,15 @@ def cmd_search(service: AppService, args, settings: Settings) -> int:
         mode=SearchMode(args.mode),
         year_from=args.year_from,
         year_to=args.year_to,
+        date_from=getattr(args,'date_from',None),
+        date_to=getattr(args,'date_to',None),
         venues=args.venues or [],
         limit=args.limit,
     )
-    query.extra["directions"] = []
+    query.extra['directions'] = getattr(args,'directions',[])
+    query.extra['match_mode'] = getattr(args,'match_mode','fuzzy')
+    query.extra['include_uncertain_dates'] = bool(getattr(args,'include_uncertain_dates',False))
+    query.extra["sort_by"] = getattr(args, "sort_by", "query")
     started = time.time()
     outcome = service.run_search(query)
     elapsed = time.time() - started
@@ -232,16 +247,26 @@ def cmd_audit(service: AppService, args, settings: Settings) -> int:
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     already = _existing_audit_keys(out_path) if args.resume else set()
+    attempts = Counter()
+    fields = AUDIT_FIELDS
+    if out_path.exists() and out_path.stat().st_size:
+        with out_path.open('r',encoding='utf-8-sig',newline='') as previous:
+            reader = csv.DictReader(previous)
+            fields = reader.fieldnames or AUDIT_FIELDS
+            if not {'input_title','status','pdf_status'}.issubset(fields):
+                raise ValueError('审计 CSV 缺少必要列，已停止，未追加或覆盖文件')
+            for row in reader:
+                attempts[(row.get('input_title') or '').strip().casefold()] += 1
     rows_written = 0
     write_header = not out_path.exists() or out_path.stat().st_size == 0
 
     with open(out_path, "a", encoding="utf-8-sig", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=AUDIT_FIELDS)
+        writer = csv.DictWriter(handle, fieldnames=fields, extrasaction='ignore')
         if write_header:
             writer.writeheader()
 
         for index, title in enumerate(titles, 1):
-            if title.lower() in already:
+            if title.casefold() in already:
                 print(f"[{index}/{len(titles)}] 跳过（已完成）：{title[:70]}")
                 continue
             started = time.time()
@@ -262,6 +287,8 @@ def cmd_audit(service: AppService, args, settings: Settings) -> int:
                 "url": "",
                 "message": "",
                 "elapsed_s": "",
+                "attempt": attempts[title.casefold()] + 1,
+                "attempted_at": datetime.now(timezone.utc).isoformat(timespec='seconds'),
             }
             try:
                 query = SearchQuery(
@@ -304,6 +331,7 @@ def cmd_audit(service: AppService, args, settings: Settings) -> int:
             writer.writerow(row)
             handle.flush()
             rows_written += 1
+            attempts[title.casefold()] += 1
 
     print(f"\n审计完成，本次写入 {rows_written} 行 → {out_path}")
     return 0
@@ -413,6 +441,16 @@ def cmd_export(service: AppService, args, settings: Settings) -> int:
 
 
 # --------------------------------------------------------------------------- #
+def _date_argument(value: str) -> str:
+    from datetime import date
+    try:
+        if len(value) != 10 or date.fromisoformat(value).isoformat() != value:
+            raise ValueError
+    except ValueError:
+        raise argparse.ArgumentTypeError('Use a valid YYYY-MM-DD date.') from None
+    return value
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="PaperRadar", description="PaperRadar CLI")
     parser.add_argument("--home", help="数据目录（默认 %%LOCALAPPDATA%%\\PaperRadar\\data）")
@@ -422,13 +460,19 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command")
 
     search = sub.add_parser("search", help="检索论文")
-    search.add_argument("-q", "--query", required=True)
+    search.add_argument('-q','--query',default='')
     search.add_argument("-m", "--mode", default="keywords",
                         choices=[m.value for m in SearchMode])
     search.add_argument("--from", dest="year_from", type=int)
     search.add_argument("--to", dest="year_to", type=int)
+    search.add_argument('--date-from',type=_date_argument,help='Start date (YYYY-MM-DD, inclusive)')
+    search.add_argument('--date-to',type=_date_argument,help='End date (YYYY-MM-DD, inclusive)')
+    search.add_argument('--match-mode',choices=['fuzzy','exact'],default='fuzzy')
+    search.add_argument('--directions',nargs='*',default=[])
+    search.add_argument('--include-uncertain-dates',action='store_true')
     search.add_argument("--limit", type=int, default=20)
     search.add_argument("--venues", nargs="*", default=[])
+    search.add_argument("--sort-by", choices=["query", "profile", "recent"], default="query")
     search.add_argument("--save", action="store_true", help="写入本地数据库")
     search.add_argument("--csv", dest="csv_out")
     search.add_argument("--json", dest="json_out")
@@ -450,7 +494,7 @@ def build_parser() -> argparse.ArgumentParser:
     audit.add_argument("--limit", type=int, default=8)
     audit.add_argument("--from", dest="year_from", type=int)
     audit.add_argument("--to", dest="year_to", type=int)
-    audit.add_argument("--resume", action="store_true", help="跳过 out 中已存在的标题")
+    audit.add_argument("--resume", action="store_true", help="仅跳过最近一次已验证成功的标题；其他结果重试")
     audit.set_defaults(func=cmd_audit)
 
     stats = sub.add_parser("stats", help="显示数据库统计")
@@ -482,6 +526,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     if not getattr(args, "command", None):
         parser.print_help()
         return 2
+    if args.command == 'search' and not (args.query.strip() or args.directions or args.venues):
+        parser.error('Provide a query, direction or venue for search.')
 
     settings = load_settings(home=Path(args.home) if args.home else None)
     service = AppService(settings=settings)

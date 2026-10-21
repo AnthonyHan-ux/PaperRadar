@@ -112,7 +112,7 @@ def test_results_are_scored_and_sorted(settings):
     )
     weak = _paper("Generic Image Classification", year=2024, doi="10.1000/weak")
     service = _make_service(settings, {"p": FakeProvider("p", [weak, strong])})
-    outcome = service.search(SearchQuery(text="remote sensing", limit=10))
+    outcome = service.search(SearchQuery(text="optical SAR", limit=10))
     assert outcome.papers[0].doi == "10.1000/strong"
     assert outcome.papers[0].relevance_score > outcome.papers[1].relevance_score
     assert outcome.papers[0].relevance_details

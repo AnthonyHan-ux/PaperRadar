@@ -9,6 +9,7 @@ from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
+    QComboBox,
     QFormLayout,
     QHBoxLayout,
     QLabel,
@@ -23,6 +24,8 @@ from PySide6.QtWidgets import (
 from models.paper import Paper
 from utils.config import Settings
 from utils.title_normalizer import snippet
+from utils.search_catalog import load_catalog, suggestions
+from ui.suggestion_picker import SuggestionCombo
 
 
 def _lines_to_list(text: str) -> list[str]:
@@ -42,7 +45,7 @@ class ProfileDialog(QDialog):
         super().__init__(parent)
         self.settings = settings
         self.setWindowTitle("我的方向 · 研究画像")
-        self.resize(680, 620)
+        self.resize(740, 820)
         profile = settings.profile
 
         layout = QVBoxLayout(self)
@@ -52,17 +55,28 @@ class ProfileDialog(QDialog):
         self.name_edit = QLineEdit(str(profile.get("name") or ""))
         form.addRow("方向名称", self.name_edit)
 
-        self.keywords = self._text_area(profile.get("keywords"))
+        self.keywords = self._text_area(profile.get("keywords"), height=72)
         form.addRow("核心关键词", self.keywords)
+        self.suggestion_area = QComboBox()
+        self.suggestion_area.addItem('全部学科常用建议','all')
+        for area in load_catalog().get('areas',[]):
+            self.suggestion_area.addItem(area['label'],area['id'])
+        form.addRow('推荐学科',self.suggestion_area)
+        self.keyword_suggestion = SuggestionCombo()
+        form.addRow('关键词选项',self._suggestion_row(self.keyword_suggestion,self.keywords))
 
-        self.positive = self._text_area(profile.get("positive_terms"))
+        self.positive = self._text_area(profile.get("positive_terms"), height=72)
         form.addRow("加分词", self.positive)
 
-        self.negative = self._text_area(profile.get("negative_terms"))
+        self.negative = self._text_area(profile.get("negative_terms"), height=72)
         form.addRow("排除词", self.negative)
 
-        self.venues = self._text_area(profile.get("priority_venues"), height=110)
+        self.venues = self._text_area(profile.get("priority_venues"), height=72)
         form.addRow("优先期刊/会议", self.venues)
+        self.venue_suggestion = SuggestionCombo()
+        form.addRow('期刊选项',self._suggestion_row(self.venue_suggestion,self.venues))
+        self.suggestion_area.currentIndexChanged.connect(self._refresh_options)
+        self._refresh_options()
 
         layout.addLayout(form)
 
@@ -80,6 +94,25 @@ class ProfileDialog(QDialog):
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
+
+    def _refresh_options(self, *_args):
+        area=self.suggestion_area.currentData()
+        self.keyword_suggestion.set_options(suggestions('topics',area))
+        self.venue_suggestion.set_options(suggestions('venues',area))
+
+    @staticmethod
+    def _suggestion_row(combo, target):
+        row=QHBoxLayout()
+        row.addWidget(combo,1)
+        add=QPushButton('加入')
+        def append():
+            value=combo.value()
+            values=_lines_to_list(target.toPlainText())
+            if value and value not in values:
+                target.setPlainText('\n'.join([*values,value]))
+        add.clicked.connect(append)
+        row.addWidget(add)
+        return row
 
     @staticmethod
     def _text_area(values, height: int = 130) -> QPlainTextEdit:
@@ -116,6 +149,7 @@ class DetailsDialog(QDialog):
         meta = [
             f"作者：{', '.join(paper.authors) or '—'}",
             f"年份：{paper.year or '—'}    期刊/会议：{paper.venue or '—'}",
+            paper.date_label,
             f"DOI：{paper.doi or '—'}    arXiv：{paper.arxiv_id or '—'}",
             f"OA：{paper.oa_status.value}    PDF：{paper.pdf_status.value}",
             f"相关性：{paper.relevance_score if paper.relevance_score is not None else '—'} "

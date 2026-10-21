@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import os
+import logging
 import sys
 from pathlib import Path
 
 import pytest
+import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -21,9 +23,27 @@ from models.paper import OaStatus, PdfCandidate, Paper  # noqa: E402
 from utils.config import load_settings  # noqa: E402
 
 
+@pytest.fixture(autouse=True)
+def isolate_logging_handlers():
+    root = logging.getLogger()
+    handlers, level = list(root.handlers), root.level
+    yield
+    for handler in list(root.handlers):
+        if handler not in handlers:
+            handler.close()
+    root.handlers[:] = handlers
+    root.setLevel(level)
+
+
 @pytest.fixture()
 def settings(tmp_path):
     cfg = load_settings(home=tmp_path, create_defaults=True)
+    # Existing domain-specific scoring tests use an explicit example profile;
+    # new installations have discipline-neutral defaults.
+    cfg.profile = yaml.safe_load((ROOT / 'examples/research_profile_remote_sensing.yaml').read_text(encoding='utf-8'))
+    example = yaml.safe_load((ROOT / 'examples/config_remote_sensing.yaml').read_text(encoding='utf-8'))
+    cfg.config['venues'] = example['venues']
+    cfg.config['directions'] = example['directions']
     cfg.config["api"]["openalex_mailto"] = "tester@example.com"
     cfg.config["api"]["unpaywall_email"] = "tester@example.com"
     cfg.config["download"]["min_pdf_bytes"] = 2000

@@ -4,12 +4,30 @@ from __future__ import annotations
 
 import os
 import time
+import sqlite3
 
 import pytest
 
 from database.db import Database
 from models.paper import Paper
 from utils.config import load_settings
+
+
+@pytest.mark.parametrize('message', ['unable to open database file', 'database is locked', 'attempt to write a readonly database'])
+def test_access_failures_do_not_quarantine_a_healthy_database(tmp_path, monkeypatch, message):
+    path = tmp_path / 'paperradar.db'
+    original = Database(path)
+    original.insert(Paper(title='Keep Existing Research'))
+    original.close_all()
+    content = path.read_bytes()
+    def fail(*args, **kwargs):
+        raise sqlite3.OperationalError(message)
+    monkeypatch.setattr(sqlite3, 'connect', fail)
+    with pytest.raises(sqlite3.OperationalError):
+        Database(path)
+    assert path.is_file()
+    assert path.read_bytes() == content
+    assert not list(tmp_path.glob('paperradar.db.corrupt.*'))
 
 
 def test_corrupt_database_is_quarantined_not_deleted(tmp_path):

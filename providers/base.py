@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from datetime import date
 from typing import Any, Optional
 
 from models.paper import Paper, SearchMode
@@ -26,6 +27,8 @@ class SearchQuery:
     venues: list[str] = field(default_factory=list)
     limit: int = 30
     extra: dict[str, Any] = field(default_factory=dict)
+    date_from: Optional[str] = None
+    date_to: Optional[str] = None
 
     def __post_init__(self) -> None:
         self.text = (self.text or "").strip()
@@ -35,6 +38,20 @@ class SearchQuery:
             self.limit = 30
         if self.year_from and self.year_to and self.year_from > self.year_to:
             self.year_from, self.year_to = self.year_to, self.year_from
+        for value in (self.date_from, self.date_to):
+            if value is not None and (not isinstance(value, str) or len(value) != 10
+                                      or date.fromisoformat(value).isoformat() != value):
+                raise ValueError('Dates must be valid YYYY-MM-DD values.')
+        if self.date_from and self.date_to and self.date_from > self.date_to:
+            self.date_from, self.date_to = self.date_to, self.date_from
+
+    @property
+    def start_date(self) -> Optional[str]:
+        return self.date_from or (f'{int(self.year_from):04d}-01-01' if self.year_from else None)
+
+    @property
+    def end_date(self) -> Optional[str]:
+        return self.date_to or (f'{int(self.year_to):04d}-12-31' if self.year_to else None)
 
     @property
     def is_identifier_query(self) -> bool:

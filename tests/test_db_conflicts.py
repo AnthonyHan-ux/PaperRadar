@@ -99,12 +99,13 @@ def test_arxiv_conflict_is_resolved(db):
     assert db.count() == 1
 
 
-def test_merge_keeps_older_row_when_priority_ties(db):
+def test_distinct_dois_are_kept_even_when_titles_match(db):
     first = Paper(title="Tie Break Paper", doi="10.1000/tie1", year=2025)
     first_id, _, _ = db.upsert(first)
     second = Paper(title="Tie Break Paper", doi="10.1000/tie2", year=2025)
     second_id, _, _ = db.upsert(second)
-    # Same title -> merged by title already; both DOIs cannot coexist.
-    assert first_id == second_id
+    # A common title cannot erase a conflicting identifier.
+    assert first_id != second_id
+    assert db.count() == 2
     stored = db.get(first_id)
     assert stored.doi == "10.1000/tie1"

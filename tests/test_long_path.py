@@ -92,9 +92,8 @@ def test_shorten_for_windows_never_crashes_on_huge_directories(tmp_path):
 
 @pytest.mark.skipif(os.name != "nt", reason="Windows long-path prefix only")
 def test_long_path_prefix_helper(tmp_path):
-    deep = _deep_root(tmp_path, target_len=230)
-    target = deep / "file.pdf"
+    target = tmp_path / ("d" * 250) / "file.pdf"
     prefixed = long_path(target)
     assert prefixed.startswith("\\\\?\\")
     # Short paths are returned unchanged.
-    assert not long_path(tmp_path / "a.pdf").startswith("\\\\?\\")
+    assert not long_path(Path('C:/paper.pdf')).startswith("\\\\?\\")

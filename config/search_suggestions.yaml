@@ -1,0 +1,1093 @@
+version: 1
+updated: '2026-10-21'
+description: 跨学科常用与热门主题示例，人工整理，非实时热度或期刊质量排名。
+sources:
+- https://www.nature.com/subjects
+- https://www.nature.com/nature-index/journals
+- https://www.science.org/journals
+- https://www.crossref.org/documentation/retrieve-metadata/rest-api/rest-api-filters/
+areas:
+- id: computing
+  label: 计算机与人工智能
+- id: biomed
+  label: 医学与生命科学
+- id: materials
+  label: 化学与材料
+- id: physics
+  label: 物理与天文
+- id: earth
+  label: 地球、环境与农业
+- id: engineering
+  label: 工程与能源
+- id: math
+  label: 数学与统计
+- id: social
+  label: 经济、管理与社会科学
+topics:
+- area: computing
+  label: 人工智能 · artificial intelligence
+  value: artificial intelligence
+  aliases:
+  - 人工智能
+  - artificial intelligence
+  - AI
+- area: computing
+  label: 机器学习 · machine learning
+  value: machine learning
+  aliases:
+  - 机器学习
+  - machine learning
+  - ML
+- area: computing
+  label: 深度学习 · deep learning
+  value: deep learning
+  aliases:
+  - 深度学习
+  - deep learning
+  - DL
+- area: computing
+  label: 大语言模型 · large language models
+  value: large language models
+  aliases:
+  - 大语言模型
+  - large language models
+  - LLM
+  - 大模型
+  - large language model
+- area: computing
+  label: 多模态学习 · multimodal learning
+  value: multimodal learning
+  aliases:
+  - 多模态学习
+  - multimodal learning
+  - 多模态
+  - multimodal
+  - multi-modal
+  - multi modal
+  - multimodality
+  - multimodal fusion
+- area: computing
+  label: 生成式人工智能 · generative artificial intelligence
+  value: generative artificial intelligence
+  aliases:
+  - 生成式人工智能
+  - generative artificial intelligence
+  - generative AI
+  - AIGC
+- area: computing
+  label: 计算机视觉 · computer vision
+  value: computer vision
+  aliases:
+  - 计算机视觉
+  - computer vision
+  - CV
+- area: computing
+  label: 自然语言处理 · natural language processing
+  value: natural language processing
+  aliases:
+  - 自然语言处理
+  - natural language processing
+  - NLP
+- area: computing
+  label: 强化学习 · reinforcement learning
+  value: reinforcement learning
+  aliases:
+  - 强化学习
+  - reinforcement learning
+  - RL
+- area: computing
+  label: 联邦学习 · federated learning
+  value: federated learning
+  aliases:
+  - 联邦学习
+  - federated learning
+  - FL
+- area: computing
+  label: 图神经网络 · graph neural networks
+  value: graph neural networks
+  aliases:
+  - 图神经网络
+  - graph neural networks
+  - GNN
+- area: computing
+  label: 检索增强生成 · retrieval augmented generation
+  value: retrieval augmented generation
+  aliases:
+  - 检索增强生成
+  - retrieval augmented generation
+  - RAG
+- area: computing
+  label: 图像分割 · image segmentation
+  value: image segmentation
+  aliases:
+  - 图像分割
+  - image segmentation
+- area: computing
+  label: 扩散模型 · diffusion models
+  value: diffusion models
+  aliases:
+  - 扩散模型
+  - diffusion models
+  - diffusion model
+- area: computing
+  label: 图像退化 · image degradation
+  value: image degradation
+  aliases:
+  - 图像退化
+  - image degradation
+  - 图像劣化
+  - degraded images
+  - degraded image
+  search_terms:
+  - image degradation
+  - degraded images
+- area: computing
+  label: 图像恢复 · image restoration
+  value: image restoration
+  aliases:
+  - 图像恢复
+  - image restoration
+  - 图像复原
+  - 图像修复
+- area: computing
+  label: 图像去噪 · image denoising
+  value: image denoising
+  aliases:
+  - 图像去噪
+  - image denoising
+  - 图像降噪
+- area: computing
+  label: 图像去模糊 · image deblurring
+  value: image deblurring
+  aliases:
+  - 图像去模糊
+  - image deblurring
+  - 去模糊
+- area: computing
+  label: 图像超分辨率 · image super resolution
+  value: image super resolution
+  aliases:
+  - 图像超分辨率
+  - image super resolution
+  - 图像超分
+  - image super-resolution
+- area: biomed
+  label: 肿瘤免疫治疗 · cancer immunotherapy
+  value: cancer immunotherapy
+  aliases:
+  - 肿瘤免疫治疗
+  - cancer immunotherapy
+  - 癌症免疫治疗
+- area: biomed
+  label: 单细胞测序 · single cell sequencing
+  value: single cell sequencing
+  aliases:
+  - 单细胞测序
+  - single cell sequencing
+  - single-cell RNA sequencing
+  - scRNA-seq
+- area: biomed
+  label: 空间转录组学 · spatial transcriptomics
+  value: spatial transcriptomics
+  aliases:
+  - 空间转录组学
+  - spatial transcriptomics
+  - 空间组学
+- area: biomed
+  label: 基因编辑 · genome editing
+  value: genome editing
+  aliases:
+  - 基因编辑
+  - genome editing
+  - CRISPR
+- area: biomed
+  label: 蛋白质设计 · protein design
+  value: protein design
+  aliases:
+  - 蛋白质设计
+  - protein design
+  - 蛋白设计
+- area: biomed
+  label: 药物发现 · drug discovery
+  value: drug discovery
+  aliases:
+  - 药物发现
+  - drug discovery
+  - drug development
+- area: biomed
+  label: 医学影像 · medical imaging
+  value: medical imaging
+  aliases:
+  - 医学影像
+  - medical imaging
+  - medical image analysis
+- area: biomed
+  label: 临床试验 · clinical trials
+  value: clinical trials
+  aliases:
+  - 临床试验
+  - clinical trials
+  - clinical trial
+- area: biomed
+  label: 脑科学与神经科学 · neuroscience
+  value: neuroscience
+  aliases:
+  - 脑科学与神经科学
+  - neuroscience
+  - brain science
+- area: biomed
+  label: 微生物组 · microbiome
+  value: microbiome
+  aliases:
+  - 微生物组
+  - microbiome
+  - microbiota
+- area: biomed
+  label: 公共卫生 · public health
+  value: public health
+  aliases:
+  - 公共卫生
+  - public health
+  - 流行病学
+  - epidemiology
+- area: materials
+  label: 材料信息学 · materials informatics
+  value: materials informatics
+  aliases:
+  - 材料信息学
+  - materials informatics
+  - AI for materials
+- area: materials
+  label: 钙钛矿太阳能电池 · perovskite solar cells
+  value: perovskite solar cells
+  aliases:
+  - 钙钛矿太阳能电池
+  - perovskite solar cells
+  - perovskite
+- area: materials
+  label: 锂离子电池 · lithium ion batteries
+  value: lithium ion batteries
+  aliases:
+  - 锂离子电池
+  - lithium ion batteries
+  - lithium-ion battery
+- area: materials
+  label: 固态电池 · solid state batteries
+  value: solid state batteries
+  aliases:
+  - 固态电池
+  - solid state batteries
+  - solid-state battery
+- area: materials
+  label: 二维材料 · two dimensional materials
+  value: two dimensional materials
+  aliases:
+  - 二维材料
+  - two dimensional materials
+  - 2D materials
+- area: materials
+  label: 电催化 · electrocatalysis
+  value: electrocatalysis
+  aliases:
+  - 电催化
+  - electrocatalysis
+  - electrocatalyst
+- area: materials
+  label: 金属有机框架 · metal organic frameworks
+  value: metal organic frameworks
+  aliases:
+  - 金属有机框架
+  - metal organic frameworks
+  - MOF
+  - MOFs
+- area: materials
+  label: 高分子材料 · polymer materials
+  value: polymer materials
+  aliases:
+  - 高分子材料
+  - polymer materials
+  - polymers
+- area: materials
+  label: 生物材料 · biomaterials
+  value: biomaterials
+  aliases:
+  - 生物材料
+  - biomaterials
+  - biomaterial
+- area: materials
+  label: 有机合成 · organic synthesis
+  value: organic synthesis
+  aliases:
+  - 有机合成
+  - organic synthesis
+  - organic chemistry
+- area: physics
+  label: 量子计算 · quantum computing
+  value: quantum computing
+  aliases:
+  - 量子计算
+  - quantum computing
+  - quantum computation
+- area: physics
+  label: 量子信息 · quantum information
+  value: quantum information
+  aliases:
+  - 量子信息
+  - quantum information
+  - quantum information science
+- area: physics
+  label: 凝聚态物理 · condensed matter physics
+  value: condensed matter physics
+  aliases:
+  - 凝聚态物理
+  - condensed matter physics
+  - condensed matter
+- area: physics
+  label: 超导 · superconductivity
+  value: superconductivity
+  aliases:
+  - 超导
+  - superconductivity
+  - superconductors
+- area: physics
+  label: 光子学 · photonics
+  value: photonics
+  aliases:
+  - 光子学
+  - photonics
+  - nanophotonics
+- area: physics
+  label: 引力波 · gravitational waves
+  value: gravitational waves
+  aliases:
+  - 引力波
+  - gravitational waves
+  - gravitational wave
+- area: physics
+  label: 宇宙学 · cosmology
+  value: cosmology
+  aliases:
+  - 宇宙学
+  - cosmology
+  - cosmological
+- area: physics
+  label: 暗物质 · dark matter
+  value: dark matter
+  aliases:
+  - 暗物质
+  - dark matter
+  - dark-matter
+- area: earth
+  label: 气候变化 · climate change
+  value: climate change
+  aliases:
+  - 气候变化
+  - climate change
+  - global warming
+- area: earth
+  label: 碳中和 · carbon neutrality
+  value: carbon neutrality
+  aliases:
+  - 碳中和
+  - carbon neutrality
+  - net zero
+- area: earth
+  label: 生物多样性 · biodiversity
+  value: biodiversity
+  aliases:
+  - 生物多样性
+  - biodiversity
+  - biological diversity
+- area: earth
+  label: 遥感 · remote sensing
+  value: remote sensing
+  aliases:
+  - 遥感
+  - remote sensing
+  - earth observation
+- area: earth
+  label: 地理信息系统 · geographic information systems
+  value: geographic information systems
+  aliases:
+  - 地理信息系统
+  - geographic information systems
+  - GIS
+- area: earth
+  label: 灾害风险 · disaster risk
+  value: disaster risk
+  aliases:
+  - 灾害风险
+  - disaster risk
+  - natural hazards
+- area: earth
+  label: 水资源 · water resources
+  value: water resources
+  aliases:
+  - 水资源
+  - water resources
+  - hydrology
+- area: earth
+  label: 环境污染 · environmental pollution
+  value: environmental pollution
+  aliases:
+  - 环境污染
+  - environmental pollution
+  - pollution
+- area: earth
+  label: 智慧农业 · precision agriculture
+  value: precision agriculture
+  aliases:
+  - 智慧农业
+  - precision agriculture
+  - smart agriculture
+- area: earth
+  label: 生态系统 · ecosystems
+  value: ecosystems
+  aliases:
+  - 生态系统
+  - ecosystems
+  - ecosystem
+- area: engineering
+  label: 机器人 · robotics
+  value: robotics
+  aliases:
+  - 机器人
+  - robotics
+  - robot
+- area: engineering
+  label: 自动驾驶 · autonomous driving
+  value: autonomous driving
+  aliases:
+  - 自动驾驶
+  - autonomous driving
+  - self driving
+- area: engineering
+  label: 可再生能源 · renewable energy
+  value: renewable energy
+  aliases:
+  - 可再生能源
+  - renewable energy
+  - clean energy
+- area: engineering
+  label: 储能 · energy storage
+  value: energy storage
+  aliases:
+  - 储能
+  - energy storage
+  - energy-storage
+- area: engineering
+  label: 氢能 · hydrogen energy
+  value: hydrogen energy
+  aliases:
+  - 氢能
+  - hydrogen energy
+  - green hydrogen
+- area: engineering
+  label: 数字孪生 · digital twins
+  value: digital twins
+  aliases:
+  - 数字孪生
+  - digital twins
+  - digital twin
+- area: engineering
+  label: 增材制造 · additive manufacturing
+  value: additive manufacturing
+  aliases:
+  - 增材制造
+  - additive manufacturing
+  - 3D printing
+- area: engineering
+  label: 智能电网 · smart grid
+  value: smart grid
+  aliases:
+  - 智能电网
+  - smart grid
+  - smart grids
+- area: engineering
+  label: 无线通信 · wireless communications
+  value: wireless communications
+  aliases:
+  - 无线通信
+  - wireless communications
+  - 6G
+  - 5G
+- area: engineering
+  label: 控制系统 · control systems
+  value: control systems
+  aliases:
+  - 控制系统
+  - control systems
+  - control theory
+- area: math
+  label: 因果推断 · causal inference
+  value: causal inference
+  aliases:
+  - 因果推断
+  - causal inference
+  - causality
+- area: math
+  label: 贝叶斯统计 · Bayesian statistics
+  value: Bayesian statistics
+  aliases:
+  - 贝叶斯统计
+  - Bayesian statistics
+  - Bayesian inference
+- area: math
+  label: 最优化 · optimization
+  value: optimization
+  aliases:
+  - 最优化
+  - optimization
+  - optimisation
+- area: math
+  label: 图论 · graph theory
+  value: graph theory
+  aliases:
+  - 图论
+  - graph theory
+  - graphs
+- area: math
+  label: 时间序列 · time series
+  value: time series
+  aliases:
+  - 时间序列
+  - time series
+  - time-series analysis
+- area: math
+  label: 概率论 · probability theory
+  value: probability theory
+  aliases:
+  - 概率论
+  - probability theory
+  - probability
+- area: math
+  label: 统计学习 · statistical learning
+  value: statistical learning
+  aliases:
+  - 统计学习
+  - statistical learning
+  - statistical machine learning
+- area: math
+  label: 数值分析 · numerical analysis
+  value: numerical analysis
+  aliases:
+  - 数值分析
+  - numerical analysis
+  - numerical methods
+- area: social
+  label: 劳动经济学 · labor economics
+  value: labor economics
+  aliases:
+  - 劳动经济学
+  - labor economics
+  - labour economics
+- area: social
+  label: 发展经济学 · development economics
+  value: development economics
+  aliases:
+  - 发展经济学
+  - development economics
+  - economic development
+- area: social
+  label: 行为经济学 · behavioral economics
+  value: behavioral economics
+  aliases:
+  - 行为经济学
+  - behavioral economics
+  - behavioural economics
+- area: social
+  label: 金融科技 · financial technology
+  value: financial technology
+  aliases:
+  - 金融科技
+  - financial technology
+  - FinTech
+  - fintech
+- area: social
+  label: 供应链 · supply chain
+  value: supply chain
+  aliases:
+  - 供应链
+  - supply chain
+  - supply-chain management
+- area: social
+  label: 创新管理 · innovation management
+  value: innovation management
+  aliases:
+  - 创新管理
+  - innovation management
+  - technological innovation
+- area: social
+  label: 数字经济 · digital economy
+  value: digital economy
+  aliases:
+  - 数字经济
+  - digital economy
+  - digital transformation
+- area: social
+  label: 社会网络 · social networks
+  value: social networks
+  aliases:
+  - 社会网络
+  - social networks
+  - social network analysis
+- area: social
+  label: 心理健康 · mental health
+  value: mental health
+  aliases:
+  - 心理健康
+  - mental health
+  - psychological well being
+- area: social
+  label: 教育技术 · educational technology
+  value: educational technology
+  aliases:
+  - 教育技术
+  - educational technology
+  - learning analytics
+- area: social
+  label: 公共政策 · public policy
+  value: public policy
+  aliases:
+  - 公共政策
+  - public policy
+  - policy evaluation
+venues:
+- area: all
+  label: Nature
+  value: Nature
+  aliases:
+  - Nature
+  - 自然
+  - 自然杂志
+  kind: journal
+- area: all
+  label: Science
+  value: Science
+  aliases:
+  - Science
+  - 科学
+  - 科学杂志
+  kind: journal
+- area: all
+  label: Nature Communications
+  value: Nature Communications
+  aliases:
+  - Nature Communications
+  - Nat. Commun.
+  - 自然通讯
+  kind: journal
+- area: all
+  label: Science Advances
+  value: Science Advances
+  aliases:
+  - Science Advances
+  - Sci. Adv.
+  - 科学进展
+  kind: journal
+- area: all
+  label: PNAS · Proceedings of the National Academy of Sciences
+  value: Proceedings of the National Academy of Sciences
+  aliases:
+  - PNAS
+  - Proceedings of the National Academy of Sciences
+  - Proc. Natl. Acad. Sci. U.S.A.
+  kind: journal
+- area: computing
+  label: Nature Machine Intelligence
+  value: Nature Machine Intelligence
+  aliases:
+  - Nature Machine Intelligence
+  - Nat. Mach. Intell.
+  kind: journal
+- area: computing
+  label: IEEE TPAMI · IEEE Transactions on Pattern Analysis and Machine Intelligence
+  value: IEEE Transactions on Pattern Analysis and Machine Intelligence
+  aliases:
+  - IEEE TPAMI
+  - IEEE Transactions on Pattern Analysis and Machine Intelligence
+  - TPAMI
+  - PAMI
+  kind: journal
+- area: computing
+  label: JMLR · Journal of Machine Learning Research
+  value: Journal of Machine Learning Research
+  aliases:
+  - JMLR
+  - Journal of Machine Learning Research
+  kind: journal
+- area: computing
+  label: Information Fusion
+  value: Information Fusion
+  aliases:
+  - Information Fusion
+  - 信息融合
+  kind: journal
+- area: computing
+  label: IEEE TIP · IEEE Transactions on Image Processing
+  value: IEEE Transactions on Image Processing
+  aliases:
+  - IEEE TIP
+  - IEEE Transactions on Image Processing
+  - TIP
+  kind: journal
+- area: computing
+  label: CVPR
+  value: CVPR
+  aliases:
+  - CVPR
+  - Computer Vision and Pattern Recognition
+  kind: conference
+- area: computing
+  label: NeurIPS
+  value: NeurIPS
+  aliases:
+  - NeurIPS
+  - Neural Information Processing Systems
+  - NIPS
+  kind: conference
+- area: computing
+  label: ICML
+  value: ICML
+  aliases:
+  - ICML
+  - International Conference on Machine Learning
+  kind: conference
+- area: computing
+  label: ICLR
+  value: ICLR
+  aliases:
+  - ICLR
+  - International Conference on Learning Representations
+  kind: conference
+- area: computing
+  label: ACL
+  value: ACL
+  aliases:
+  - ACL
+  - Association for Computational Linguistics
+  kind: conference
+- area: biomed
+  label: Cell
+  value: Cell
+  aliases:
+  - Cell
+  - 细胞
+  kind: journal
+- area: biomed
+  label: Nature Medicine
+  value: Nature Medicine
+  aliases:
+  - Nature Medicine
+  - Nat. Med.
+  kind: journal
+- area: biomed
+  label: NEJM · New England Journal of Medicine
+  value: New England Journal of Medicine
+  aliases:
+  - NEJM
+  - New England Journal of Medicine
+  - The New England Journal of Medicine
+  - N Engl J Med
+  kind: journal
+- area: biomed
+  label: The Lancet
+  value: The Lancet
+  aliases:
+  - The Lancet
+  - Lancet
+  - 柳叶刀
+  kind: journal
+- area: biomed
+  label: JAMA
+  value: JAMA
+  aliases:
+  - JAMA
+  - Journal of the American Medical Association
+  kind: journal
+- area: biomed
+  label: Nature Biotechnology
+  value: Nature Biotechnology
+  aliases:
+  - Nature Biotechnology
+  - Nat. Biotechnol.
+  kind: journal
+- area: biomed
+  label: Nature Methods
+  value: Nature Methods
+  aliases:
+  - Nature Methods
+  - Nat. Methods
+  kind: journal
+- area: biomed
+  label: PLOS Biology
+  value: PLOS Biology
+  aliases:
+  - PLOS Biology
+  - PLoS Biology
+  kind: journal
+- area: materials
+  label: Nature Materials
+  value: Nature Materials
+  aliases:
+  - Nature Materials
+  - Nat. Mater.
+  kind: journal
+- area: materials
+  label: Advanced Materials
+  value: Advanced Materials
+  aliases:
+  - Advanced Materials
+  - Adv. Mater.
+  kind: journal
+- area: materials
+  label: ACS Nano
+  value: ACS Nano
+  aliases:
+  - ACS Nano
+  kind: journal
+- area: materials
+  label: JACS · Journal of the American Chemical Society
+  value: Journal of the American Chemical Society
+  aliases:
+  - JACS
+  - Journal of the American Chemical Society
+  - J. Am. Chem. Soc.
+  kind: journal
+- area: materials
+  label: Angewandte Chemie · Angewandte Chemie International Edition
+  value: Angewandte Chemie International Edition
+  aliases:
+  - Angewandte Chemie
+  - Angewandte Chemie International Edition
+  - Angew. Chem. Int. Ed.
+  kind: journal
+- area: materials
+  label: Chemical Reviews
+  value: Chemical Reviews
+  aliases:
+  - Chemical Reviews
+  - Chem. Rev.
+  kind: journal
+- area: materials
+  label: Nature Chemistry
+  value: Nature Chemistry
+  aliases:
+  - Nature Chemistry
+  - Nat. Chem.
+  kind: journal
+- area: physics
+  label: Physical Review Letters
+  value: Physical Review Letters
+  aliases:
+  - Physical Review Letters
+  - PRL
+  - Phys. Rev. Lett.
+  kind: journal
+- area: physics
+  label: Nature Physics
+  value: Nature Physics
+  aliases:
+  - Nature Physics
+  - Nat. Phys.
+  kind: journal
+- area: physics
+  label: Physical Review X
+  value: Physical Review X
+  aliases:
+  - Physical Review X
+  - PRX
+  - Phys. Rev. X
+  kind: journal
+- area: physics
+  label: The Astrophysical Journal
+  value: The Astrophysical Journal
+  aliases:
+  - The Astrophysical Journal
+  - Astrophysical Journal
+  - ApJ
+  kind: journal
+- area: physics
+  label: Monthly Notices of the Royal Astronomical Society
+  value: Monthly Notices of the Royal Astronomical Society
+  aliases:
+  - Monthly Notices of the Royal Astronomical Society
+  - MNRAS
+  kind: journal
+- area: earth
+  label: Nature Climate Change
+  value: Nature Climate Change
+  aliases:
+  - Nature Climate Change
+  - Nat. Clim. Chang.
+  kind: journal
+- area: earth
+  label: Nature Geoscience
+  value: Nature Geoscience
+  aliases:
+  - Nature Geoscience
+  - Nat. Geosci.
+  kind: journal
+- area: earth
+  label: Remote Sensing of Environment
+  value: Remote Sensing of Environment
+  aliases:
+  - Remote Sensing of Environment
+  - RSE
+  kind: journal
+- area: earth
+  label: IEEE TGRS · IEEE Transactions on Geoscience and Remote Sensing
+  value: IEEE Transactions on Geoscience and Remote Sensing
+  aliases:
+  - IEEE TGRS
+  - IEEE Transactions on Geoscience and Remote Sensing
+  - TGRS
+  kind: journal
+- area: earth
+  label: ISPRS JPRS · ISPRS Journal of Photogrammetry and Remote Sensing
+  value: ISPRS Journal of Photogrammetry and Remote Sensing
+  aliases:
+  - ISPRS JPRS
+  - ISPRS Journal of Photogrammetry and Remote Sensing
+  kind: journal
+- area: earth
+  label: Environmental Science & Technology
+  value: Environmental Science & Technology
+  aliases:
+  - Environmental Science & Technology
+  - Environ. Sci. Technol.
+  kind: journal
+- area: earth
+  label: Global Change Biology
+  value: Global Change Biology
+  aliases:
+  - Global Change Biology
+  - Glob. Change Biol.
+  kind: journal
+- area: engineering
+  label: Nature Energy
+  value: Nature Energy
+  aliases:
+  - Nature Energy
+  - Nat. Energy
+  kind: journal
+- area: engineering
+  label: Joule
+  value: Joule
+  aliases:
+  - Joule
+  kind: journal
+- area: engineering
+  label: Applied Energy
+  value: Applied Energy
+  aliases:
+  - Applied Energy
+  - Appl. Energy
+  kind: journal
+- area: engineering
+  label: Energy & Environmental Science
+  value: Energy & Environmental Science
+  aliases:
+  - Energy & Environmental Science
+  - Energy Environ. Sci.
+  kind: journal
+- area: engineering
+  label: IEEE Transactions on Robotics
+  value: IEEE Transactions on Robotics
+  aliases:
+  - IEEE Transactions on Robotics
+  - IEEE T-RO
+  - T-RO
+  kind: journal
+- area: engineering
+  label: IEEE Transactions on Automatic Control
+  value: IEEE Transactions on Automatic Control
+  aliases:
+  - IEEE Transactions on Automatic Control
+  - IEEE TAC
+  - TAC
+  kind: journal
+- area: math
+  label: Annals of Statistics · The Annals of Statistics
+  value: The Annals of Statistics
+  aliases:
+  - Annals of Statistics
+  - The Annals of Statistics
+  - Ann. Stat.
+  kind: journal
+- area: math
+  label: Journal of the American Statistical Association
+  value: Journal of the American Statistical Association
+  aliases:
+  - Journal of the American Statistical Association
+  - JASA
+  kind: journal
+- area: math
+  label: Biometrika
+  value: Biometrika
+  aliases:
+  - Biometrika
+  kind: journal
+- area: math
+  label: SIAM Journal on Optimization
+  value: SIAM Journal on Optimization
+  aliases:
+  - SIAM Journal on Optimization
+  - SIAM J. Optim.
+  kind: journal
+- area: math
+  label: Annals of Mathematics
+  value: Annals of Mathematics
+  aliases:
+  - Annals of Mathematics
+  - Ann. Math.
+  kind: journal
+- area: social
+  label: American Economic Review
+  value: American Economic Review
+  aliases:
+  - American Economic Review
+  - AER
+  kind: journal
+- area: social
+  label: Econometrica
+  value: Econometrica
+  aliases:
+  - Econometrica
+  kind: journal
+- area: social
+  label: The Quarterly Journal of Economics
+  value: The Quarterly Journal of Economics
+  aliases:
+  - The Quarterly Journal of Economics
+  - Quarterly Journal of Economics
+  - QJE
+  kind: journal
+- area: social
+  label: Management Science
+  value: Management Science
+  aliases:
+  - Management Science
+  - Manage. Sci.
+  kind: journal
+- area: social
+  label: Research Policy
+  value: Research Policy
+  aliases:
+  - Research Policy
+  - Res. Policy
+  kind: journal
+- area: social
+  label: Psychological Science
+  value: Psychological Science
+  aliases:
+  - Psychological Science
+  - Psychol. Sci.
+  kind: journal
+- area: social
+  label: 经济研究
+  value: 经济研究
+  aliases:
+  - 经济研究
+  - Economic Research Journal
+  kind: journal

@@ -70,6 +70,7 @@ def parse_paper(data: dict[str, Any], source: str = "semantic_scholar") -> Optio
         title=title,
         authors=authors,
         year=data.get("year"),
+        publication_date=data.get('publicationDate'),
         venue=venue,
         doi=doi,
         arxiv_id=arxiv_id,
@@ -102,7 +103,9 @@ class SemanticScholarProvider(SearchProvider):
             "limit": max(1, min(int(query.limit), 100)),
             "fields": FIELDS,
         }
-        if query.year_from or query.year_to:
+        if query.date_from or query.date_to:
+            params['publicationDateOrYear'] = f'{query.start_date or ""}:{query.end_date or ""}'
+        elif query.year_from or query.year_to:
             start = int(query.year_from) if query.year_from else ""
             end = int(query.year_to) if query.year_to else ""
             params["year"] = f"{start}-{end}"

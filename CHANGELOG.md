@@ -1,3 +1,32 @@
+# v1.3.1 - Explain empty searches and expand known bilingual terms
+
+- Show progress, completion, source failures and per-stage filter counts in the results tab.
+- Distinguish no enabled sources, all-source failure, no candidates and candidates excluded by filters.
+- Add explicit relaxation actions that preserve the remaining query settings.
+- Add image degradation/restoration terms and common multimodal aliases, with visible English query expansion.
+- Cover the reported search and relaxation clicks through real Qt worker callbacks.
+
+# v1.3.0 - Search suggestions and calendar filters
+
+- Add editable bilingual topic and venue suggestions linked to eight broad disciplines.
+- Add contains-completion, multi-select filters and fuzzy/phrase matching controls.
+- Pass inclusive day-precision ranges to Crossref, OpenAlex, arXiv and Semantic Scholar.
+- Preserve partial date precision, disclose arXiv submission dates and offer uncertain-date inclusion.
+- Store date metadata with a backed-up schema v4 migration; abort when the required backup fails.
+- Support direction-only and journal-only searches and preserve partial results after route failures.
+- Show and export bibliographic dates, sort within the same year, and apply safer Crossref request spacing.
+
+# v1.2.0 - Reliability and general-purpose search
+
+- Guard title-based deduplication in both provider merging and database lookups.
+- Require title-area evidence for PDF identity and disclose author/DOI conflicts.
+- Correct Crossref singleton DOI parameters and preserve provider errors.
+- Recover stale PDF candidates through one bounded OA discovery pass.
+- Retry unfinished audit entries and record attempt number/time in new CSV files.
+- Rank by the current query, with explicit profile/year alternatives.
+- Use discipline-neutral defaults and retain remote sensing as optional examples.
+- Preserve existing user profiles, database schema and stored library files.
+
 # Changelog
 
 ## 1.1.0 — 2026-10-19（Production Release）
@@ -34,3 +63,5 @@
 
 ## 1.0.0 — 初始版本
 - 多源检索、四层去重、可解释相关性评分、OA 解析、批量下载、PDF 五层校验、SQLite 文献库、CSV/BibTeX/RIS 导出、CLI 批量审计、PyInstaller onedir 打包。
+
+- Access/locked/read-only database errors no longer trigger corruption quarantine.

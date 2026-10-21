@@ -45,7 +45,7 @@ QGroupBox::title {
     color: #8fa0b8;
 }
 
-QLineEdit, QSpinBox, QComboBox, QPlainTextEdit, QTextEdit {
+QLineEdit, QSpinBox, QDateEdit, QComboBox, QPlainTextEdit, QTextEdit {
     background-color: #101318;
     border: 1px solid #2f3641;
     border-radius: 6px;
@@ -53,10 +53,13 @@ QLineEdit, QSpinBox, QComboBox, QPlainTextEdit, QTextEdit {
     selection-background-color: #2f6feb;
     color: #dfe6f1;
 }
-QLineEdit:focus, QSpinBox:focus, QComboBox:focus {
+QLineEdit:focus, QSpinBox:focus, QDateEdit:focus, QComboBox:focus {
     border: 1px solid #4b8bf5;
 }
 QComboBox::drop-down { border: none; width: 18px; }
+QDateEdit::drop-down { border: none; width: 24px; }
+QCalendarWidget QAbstractItemView { background: #15181d; color: #d6dbe4; selection-background-color: #2f6feb; }
+QCalendarWidget QWidget#qt_calendar_navigationbar { background: #232933; }
 QComboBox QAbstractItemView {
     background-color: #1b1f26;
     border: 1px solid #2f3641;
@@ -174,8 +177,10 @@ QCheckBox::indicator:checked { background: #2f6feb; border-color: #4b8bf5; }
 
 
 def apply_theme(app) -> None:
+    from utils.config import resource_root
     app.setStyle("Fusion")
-    app.setStyleSheet(DARK_QSS)
+    arrow = (resource_root() / 'assets/chevron-down.svg').as_posix()
+    app.setStyleSheet(DARK_QSS + f"\nQComboBox::down-arrow, QDateEdit::down-arrow {{ image: url('{arrow}'); width: 12px; height: 8px; }}")
 
 
 def make_app_icon(size: int = 64):

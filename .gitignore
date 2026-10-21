@@ -35,3 +35,31 @@ smoke.png
 verify.png
 .selftest-home/
 .smoke-home/
+
+# --- Private credentials and personal settings ------------------------------
+.env
+.env.*
+!.env.example
+!.env.template
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*.json
+service-account*.json
+**/user_config.yaml
+**/*.local.yaml
+**/*.local.yml
+**/config.local.*
+
+# --- Personal papers, database backups and editor files ---------------------
+*.pdf
+*.db.*
+*.sqlite
+*.sqlite3
+*.sqlite-*
+*.sqlite3-*
+.idea/
+.vscode/
+Thumbs.db
+.DS_Store

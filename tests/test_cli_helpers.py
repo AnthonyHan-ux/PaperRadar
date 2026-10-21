@@ -58,8 +58,8 @@ def test_best_match_returns_none_below_threshold():
 def test_existing_audit_keys(tmp_path: Path):
     path = tmp_path / "audit.csv"
     path.write_text(
-        "input_title,status\nPaper One,FOUND\nPaper Two,NO_MATCH\n",
+        "input_title,status,pdf_status\nPaper One,FOUND,VALIDATED\nPaper Two,NO_MATCH,\n",
         encoding="utf-8",
     )
-    assert _existing_audit_keys(path) == {"paper one", "paper two"}
+    assert _existing_audit_keys(path) == {"paper one"}
     assert _existing_audit_keys(tmp_path / "missing.csv") == set()

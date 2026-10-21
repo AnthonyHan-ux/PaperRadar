@@ -124,6 +124,7 @@ def parse_work(work: dict[str, Any], source: str = "openalex") -> Optional[Paper
         title=title,
         authors=authors,
         year=work.get("publication_year"),
+        publication_date=work.get('publication_date'),
         venue=clean_text_block(venue) or None,
         doi=work.get("doi"),
         abstract=clean_text_block(reconstruct_abstract(work.get("abstract_inverted_index"))),
@@ -171,10 +172,10 @@ class OpenAlexProvider(SearchProvider):
         else:
             params["search"] = query.text
 
-        if query.year_from:
-            filters.append(f"from_publication_date:{int(query.year_from)}-01-01")
-        if query.year_to:
-            filters.append(f"to_publication_date:{int(query.year_to)}-12-31")
+        if query.start_date:
+            filters.append(f"from_publication_date:{query.start_date}")
+        if query.end_date:
+            filters.append(f"to_publication_date:{query.end_date}")
         if filters:
             params["filter"] = ",".join(filters)
         if query.mode in (SearchMode.KEYWORDS, SearchMode.TOPIC, SearchMode.TITLE):

@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS papers (
     title_key         TEXT,                                 -- blocking key for fuzzy dedupe
     authors           TEXT    NOT NULL DEFAULT '[]',   -- JSON array
     year              INTEGER,
+    publication_date  TEXT,
+    date_kind         TEXT    NOT NULL DEFAULT 'published',
     venue             TEXT,
     doi               TEXT,
     arxiv_id          TEXT,

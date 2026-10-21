@@ -1,4 +1,41 @@
-# PaperRadar · 遥感文献雷达 v1.1.0
+# PaperRadar · 科研文献雷达 v1.3.1
+
+本地 Windows 科研文献工具：跨学科检索、模糊匹配、日历筛选、公开 PDF 获取与验证、本地文献库及 CSV / BibTeX / RIS 导出。
+
+## 快速开始（源码）
+
+推荐 Windows 10/11、Python 3.12。克隆仓库后运行：
+
+```powershell
+git clone https://github.com/AnthonyHan-ux/PaperRadar.git
+cd PaperRadar
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe main.py
+```
+
+命令行检索和离线测试：
+
+```powershell
+.\.venv\Scripts\python.exe cli.py search -q "medical image segmentation" --limit 20
+.\.venv\Scripts\python.exe -m pytest tests -q
+```
+
+仓库保存源码和默认配置模板；运行数据、个人配置、PDF、缓存和打包产物不会上传。用户数据默认保存在 `%LOCALAPPDATA%\PaperRadar\data`。API 凭据只在本机设置，模板中的凭据字段保持为空。
+
+需要 Windows 可执行程序时，请按第 9 节运行 `build.ps1`；`Start-PaperRadar.bat` 和 `Check-PaperRadar.bat` 适用于已安装到 `%LOCALAPPDATA%\Programs\PaperRadar-1.3.1` 的本机版本。首次使用源码请按上述命令启动。
+
+## 当前版本
+
+检索区新增跨学科建议：8 类学科、87 个中英主题、60 个期刊/会议。下拉选项可输入片段或简称补全，仍可手工输入；期刊和方向各支持最多 5 项。推荐属于人工整理的常用示例，不是实时热度或质量排名。
+
+1.3.1 在结果区直接显示正在检索、实际英文检索词、各来源返回/失败状态和筛选排除原因；零结果提供取消期刊、取消方向或仅关键词重搜按钮。新增图像退化、图像恢复等显式中英词条及常见多模态别名。自定义中文无对照时明确提示，不冒充通用机器翻译。严格筛选下仍可能没有结果；放宽条件由用户主动选择。
+
+默认模糊检索，支持词项片段、词序变化和部分轻微拼写差异；也可切换连续词组精确匹配。DOI/arXiv ID 始终按标识符定位。输入不完整标题即可找候选；召回仍受来源索引、语言、限流和返回数量限制。内置中英别名可转换，自定义中文不会被当作任意机器翻译。
+
+日期使用日历，支持 `YYYY-MM-DD`、近 7 天/30 天/3 个月/一年和自定义范围，含首尾日期。arXiv 使用首投稿日期，其他来源使用其记录的发表日期。来源只给年份或月份时保留原精度；不能确定落入范围的文献默认排除，可选保留待核对。日期会保存到文献库，并显示在表格、详情及 CSV 中。首次打开旧库时升级至 schema v4；非空库先备份，备份失败则停止升级。
+
+示例：`PaperRadarCLI.exe search -q "neural network" --match-mode fuzzy --date-from 2024-02-01 --date-to 2024-02-29 --venues "Nature Machine Intelligence"`。原 `--from/--to` 年份参数继续可用。日期检索的验证说明见 `docs/VALIDATION_V1_3.md`。
 
 本地运行的**学术文献雷达 + 开放获取 PDF 下载器 + 本地文献库**。  
 输入一个关键词：多源检索 → 去重合并 → 相关性排序 → 查找合法公开全文 → 下载 → 校验真伪 → 入库 → 导出。
@@ -61,7 +98,16 @@ dist\PaperRadar\cli\PaperRadarCLI.exe stats
 
 **我的方向**：点左侧「我的方向」编辑关键词、加分词、排除词、优先期刊，保存后按这些条件打分排序。
 
-### 相关性评分
+### 检索排序
+
+默认按本次查询的元数据词项匹配排序，可切换为“我的研究方向”或“发表年份”。
+查询匹配与个人方向分开计算，悬停相关性列可查看另一个参考分、命中词和缺失摘要提示。
+分数是检索辅助信息，不代表论文质量、研究结论可信度或相关概率。
+
+新安装不预设学科关键词、排除词或期刊名单。会议、期刊和方向过滤可以自由输入，多个条件用分号分隔。
+已有用户配置和数据继续保留；遥感配置位于 examples/*_remote_sensing.yaml，作为可选示例。
+
+### 个人研究方向评分（仅在选择该排序时使用）
 
 | 通道 | 权重 | 满分条件 |
 | --- | --- | --- |
@@ -80,8 +126,8 @@ dist\PaperRadar\cli\PaperRadarCLI.exe stats
 
 | 状态 | 含义 | 你该做什么 |
 | --- | --- | --- |
-| `VALIDATED` | 已下载，标题/DOI 校验通过 | 直接用 |
-| `TITLE_WARNING` | 已下载，但标题相似度 80–90 或 PDF 无文本层（扫描件） | 打开确认一下 |
+| `VALIDATED` | 已下载，标题区匹配通过且无已知身份冲突 | 重要引用仍应核对原文 |
+| `TITLE_WARNING` | 已下载，但标题相似度 80–90、作者/DOI 证据待确认，或 PDF 无文本层（扫描件） | 打开确认一下 |
 | `PUBLIC_BUT_BLOCKED` | **确认存在公开副本**，但服务器拒绝自动下载（403/401） | 点「打开论文来源页」手动下载 |
 | `PAYWALLED_ONLY` | 有明确证据表明只有付费版本 | 通过学校/机构订阅获取 |
 | `NO_PUBLIC_COPY_FOUND` | 没有找到公开副本（不代表一定付费） | 可换关键词再试，或在机构图书馆查 |
@@ -106,8 +152,9 @@ cd dist\PaperRadar
 ```
 
 - 每条标题：检索 → 选最匹配的记录（相似度 <85 记为 `NO_MATCH`）→ 找公开 PDF → 下载 → 校验 → **立即写入一行**。
-- 中途断了直接重跑，`--resume` 会跳过 `audit.csv` 里已完成的标题。
-- `audit.csv` 字段：`index, input_title, status, pdf_status, matched_title, match_score, year, venue, doi, arxiv_id, oa_status, path, url, message, elapsed_s`。
+- 中途断了直接重跑，`--resume` 仅跳过最近一次为 `VALIDATED` 的标题；网络失败、未匹配、被阻止和待确认项会重试。若记录的本地文件已丢失，也会重试。
+- `audit.csv` 字段：`index, input_title, status, pdf_status, matched_title, match_score, year, venue, doi, arxiv_id, oa_status, path, url, message, elapsed_s, attempt, attempted_at`。
+- 新审计 CSV 记录尝试次数和 UTC 时间；旧格式续跑时保持原有列数，已有历史不会被覆盖。
 - `downloads.csv` 字段：`id, timestamp, title, doi, provider, status, reason, http_status, url, local_path`。
 
 ---
@@ -115,7 +162,7 @@ cd dist\PaperRadar
 ## 6. 命令行速查
 
 ```powershell
-PaperRadarCLI.exe search -q "optical SAR change detection" --from 2023 --to 2026 --limit 20 --save
+PaperRadarCLI.exe search -q "medical image segmentation" --sort-by query --from 2023 --to 2026 --limit 20 --save
 PaperRadarCLI.exe download -q "cloud removal" --limit 5
 PaperRadarCLI.exe audit --titles titles.txt --out audit.csv --resume
 PaperRadarCLI.exe stats [--downloads-csv downloads.csv]
@@ -135,7 +182,7 @@ PaperRadarCLI.exe --version
 
 ```yaml
 api:
-  openalex_mailto: "you@example.com"    # OpenAlex 礼貌池，10 req/s
+  openalex_mailto: "you@example.com"    # 联系邮箱；遵守服务当前额度与限流
   unpaywall_email: "you@example.com"    # 启用 Unpaywall（必须有邮箱）
   semantic_scholar_api_key: ""          # 可选，缓解 S2 429
   timeout_seconds: 30
@@ -191,8 +238,8 @@ powershell -ExecutionPolicy Bypass -File build.ps1
 | --- | --- |
 | 检索慢或个别来源失败 | 看日志；Semantic Scholar 429 属正常限流，配 API key 可缓解 |
 | 大量 `PUBLIC_BUT_BLOCKED` | 目标站点反爬（Elsevier、MDPI 常见），用「打开来源页」手动下载 |
-| 大量 `NO_PUBLIC_COPY_FOUND` | 确认填了 `unpaywall_email`；很多遥感期刊论文确实没有 OA 版本 |
-| 双击 exe 没反应 | 运行 `PaperRadar.exe --smoke smoke.png`，再查看 `logs\app.log` |
+| 大量 `NO_PUBLIC_COPY_FOUND` | 确认填了 `unpaywall_email`；部分论文没有可发现的公开副本，缺少公开链接不等于确认只有付费版本 |
+| 双击 exe 没反应 | 查看 [Windows 启动说明](docs/STARTUP_WINDOWS.md)；日志位于 `%LOCALAPPDATA%\PaperRadar\data\logs\app.log` |
 | 想换数据盘 | 设置环境变量 `PAPERRADAR_HOME=D:\PaperRadarData`（该目录不会被自动迁移，需手动放置数据） |
 | 中文输出乱码 | `chcp 65001`，或使用 Windows Terminal |
 | 数据库异常 | 程序会自动隔离损坏文件；备份在 `...\database\paperradar.db.corrupt.*` |
@@ -205,7 +252,7 @@ powershell -ExecutionPolicy Bypass -File build.ps1
 2. Unpaywall 必须配置邮箱，否则该层跳过。
 3. 不实现网页爬取补漏（CVF/PMLR/作者主页/GitHub 等留待后续版本）。
 4. 扫描版 PDF 无文本层时只能给 `TITLE_WARNING`。
-5. 会场归一化覆盖主要遥感/视觉期刊会议，未知会场归入 `Other` 目录。
+5. 内置会场别名保留兼容性；任何学科均可使用，自定义会场不受名单限制，未知别名归入 `Other` 目录。
 6. 大数据集（>1 万篇）的去重依赖标题指纹分桶，极端相似但前缀不同的标题可能漏合并。
 
 ---
@@ -213,3 +260,20 @@ powershell -ExecutionPolicy Bypass -File build.ps1
 ## 12. 合规声明
 
 本工具只对**合法公开**文献做自动化整理：不绕过访问控制，不访问侵权镜像，不破解验证码，不伪造身份。所有下载行为等同于你在浏览器中打开一个公开 PDF。
+
+
+## 13. v1.2.0 可靠性改进
+
+- PDF 身份不再由 DOI 子串或正文引用单独判定；标题只在首页标题区比较，作者或 DOI 冲突提示人工复核。
+- 搜索结果和数据库统一保护不同 DOI/arXiv ID、已知作者冲突和 Part I/II、不同数字标题。
+- Crossref 单篇 DOI 查询按官方接口请求；404 与限流、服务错误明确区分。
+- 已有 PDF 链接失效后补查一次，只尝试新增候选；单篇和批量使用同一恢复路径，取消后不继续补查。
+- DOI 补查后才发现的 arXiv ID 也会生成下载候选。
+- 检索分数、学科配置与失败续跑规则见上述章节。
+
+标题相似度仍是启发式证据：缺少标识符、作者和年份关系时不能证明两份记录属于同一作品。
+本版保留无冲突元数据下原有的标题匹配兼容逻辑；预印本/正式版完整关系管理、
+多路主题查询、来源分页和大规模跨学科验收尚待后续实现。
+详见 docs/VALIDATION_V1_2.md，本版测试不使用用户真实数据库。
+
+数据库访问被拒绝、被占用或只读时保留原库并报告错误；只有 SQLite 明确报告损坏时才隔离备份。

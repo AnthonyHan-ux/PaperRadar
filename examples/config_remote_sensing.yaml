@@ -1,0 +1,105 @@
+# PaperRadar user configuration.
+# Everything here is optional: missing keys fall back to the built-in defaults.
+# Edit the API block to join the "polite pools" (faster, friendlier limits).
+
+app:
+  theme: dark
+  language: zh
+  log_level: INFO
+
+api:
+  # Put your email here to get OpenAlex's polite pool (10 req/s) and to enable
+  # Unpaywall (Unpaywall requires an email address).
+  openalex_mailto: ""
+  unpaywall_email: ""
+  semantic_scholar_api_key: ""
+  user_agent: "PaperRadar/1.0 (academic research tool)"
+  timeout_seconds: 30
+  max_retries: 3
+  cache_ttl_hours: 24
+  rate_limits:
+    openalex: 0.15
+    semantic_scholar: 1.2
+    crossref: 0.2
+    arxiv: 3.2
+    unpaywall: 0.2
+    openreview: 1.0
+
+search:
+  providers:
+    - openalex
+    - semantic_scholar
+    - crossref
+    - arxiv
+  default_limit: 30
+  per_provider_limit: 30
+  parallel: true
+  provider_timeout_seconds: 40
+  title_dedupe_threshold: 95
+  min_year: 1990
+
+download:
+  max_workers: 3
+  min_pdf_bytes: 10000
+  max_pdf_bytes: 262144000
+  request_timeout_seconds: 90
+  validate_title_threshold: 90
+  validate_title_warning: 80
+  enable_pdf_resume: true
+
+scoring:
+  weights:
+    title: 40
+    abstract: 30
+    keywords: 15
+    direction: 10
+    venue: 5
+  saturation:
+    title: 2
+    abstract: 4
+    keywords: 3
+    direction: 1
+  negative_penalty: 15
+  max_negative_penalty: 30
+  bands:
+    high: 90
+    medium: 70
+    low: 50
+
+venues:
+  - CVPR
+  - ICCV
+  - ECCV
+  - NeurIPS
+  - ICLR
+  - AAAI
+  - ACM MM
+  - IEEE TGRS
+  - IEEE TIP
+  - IEEE JSTARS
+  - IEEE GRSL
+  - ISPRS JPRS
+  - Remote Sensing of Environment
+  - Remote Sensing (MDPI)
+  - JAG
+  - Photogrammetric Engineering & Remote Sensing
+  - Information Fusion
+  - arXiv
+  - Other
+
+directions:
+  - Change Detection
+  - Optical-SAR
+  - Multimodal
+  - Disaster
+  - Building Damage
+  - Cloud Removal
+  - Fog
+  - Degradation
+  - Robustness
+  - Domain Generalization
+  - Foundation Model
+  - VLM
+  - Agent
+  - Long Time Series
+  - Generative Model

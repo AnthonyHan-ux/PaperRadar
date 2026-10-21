@@ -8,12 +8,15 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
+    QFrame,
     QHBoxLayout,
     QHeaderView,
     QLabel,
     QLineEdit,
     QMenu,
     QMessageBox,
+    QProgressBar,
+    QPushButton,
     QTableView,
     QVBoxLayout,
     QWidget,
@@ -29,6 +32,13 @@ class ResultTable(QWidget):
     open_pdf_requested = Signal(object)
     download_requested = Signal(object)
     details_requested = Signal(object)
+    relax_requested = Signal(str)
+    logs_requested = Signal()
+
+    def set_sort_mode(self, mode: str) -> None:
+        key = 'date' if mode == 'recent' else 'score'
+        column = next(index for index, item in enumerate(COLUMNS) if item[0] == key)
+        self.table.sortByColumn(column, Qt.DescendingOrder)
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
@@ -39,6 +49,43 @@ class ResultTable(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(6)
+
+        self.feedback_box = QFrame()
+        self.feedback_box.setObjectName('SearchFeedback')
+        self.feedback_box.setStyleSheet('QFrame#SearchFeedback { background: #191f29; border: 1px solid #35465e; border-radius: 6px; }')
+        feedback = QVBoxLayout(self.feedback_box)
+        feedback.setContentsMargins(12,10,12,10)
+        self.feedback_title = QLabel('输入关键词或选择方向 / 期刊，然后点击搜索')
+        self.feedback_title.setStyleSheet('font-weight: 600; color: #9bc7ff;')
+        self.feedback_title.setWordWrap(True)
+        self.feedback_title.setTextFormat(Qt.PlainText)
+        feedback.addWidget(self.feedback_title)
+        self.feedback_detail = QLabel('搜索进度、来源错误和筛选原因会直接显示在这里。')
+        self.feedback_detail.setWordWrap(True)
+        self.feedback_detail.setTextFormat(Qt.PlainText)
+        self.feedback_detail.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        feedback.addWidget(self.feedback_detail)
+        self.search_progress = QProgressBar()
+        self.search_progress.setRange(0,0)
+        self.search_progress.setMaximumHeight(8)
+        self.search_progress.setTextVisible(False)
+        self.search_progress.hide()
+        feedback.addWidget(self.search_progress)
+        actions = QHBoxLayout()
+        self.relax_venue_button = QPushButton('取消期刊限制重搜')
+        self.relax_direction_button = QPushButton('取消方向限制重搜')
+        self.keyword_only_button = QPushButton('仅用关键词重搜')
+        for button,key in ((self.relax_venue_button,'venue'),(self.relax_direction_button,'direction'),(self.keyword_only_button,'both')):
+            button.clicked.connect(lambda _checked=False, key=key:self.relax_requested.emit(key))
+            button.hide()
+            actions.addWidget(button)
+        self.logs_button = QPushButton('查看日志')
+        self.logs_button.clicked.connect(self.logs_requested.emit)
+        self.logs_button.hide()
+        actions.addWidget(self.logs_button)
+        actions.addStretch(1)
+        feedback.addLayout(actions)
+        layout.addWidget(self.feedback_box)
 
         toolbar = QHBoxLayout()
         self.filter_edit = QLineEdit()
@@ -88,6 +135,33 @@ class ResultTable(QWidget):
         layout.addWidget(self.table, 1)
 
     # ------------------------------------------------------------------ #
+    def show_searching(self, query) -> None:
+        self.set_papers([])
+        self.feedback_title.setText('正在检索，请稍候…')
+        self.feedback_detail.setText('检索词：' + (query.text or '仅方向 / 期刊条件') + '\n完成后会在此显示结果数量、实际检索词和来源状态。')
+        self.search_progress.show()
+        for button in (self.relax_venue_button,self.relax_direction_button,self.keyword_only_button,self.logs_button):
+            button.hide()
+
+    def show_outcome(self, outcome) -> None:
+        self.set_papers(outcome.papers)
+        self.search_progress.hide()
+        self.feedback_title.setText(outcome.feedback_heading())
+        self.feedback_detail.setText(outcome.feedback_text())
+        empty = not outcome.papers
+        venues = bool(outcome.query.venues)
+        directions = bool(outcome.query.extra.get('directions'))
+        self.relax_venue_button.setVisible(empty and venues)
+        self.relax_direction_button.setVisible(empty and directions)
+        self.keyword_only_button.setVisible(empty and venues and directions)
+        self.logs_button.show()
+
+    def show_failure(self, message: str) -> None:
+        self.search_progress.hide()
+        self.feedback_title.setText('检索失败')
+        self.feedback_detail.setText(message + '\n详细错误可点击“查看日志”。')
+        self.logs_button.show()
+
     def set_papers(self, papers: list[Paper]) -> None:
         self.model.set_papers(papers)
         self._update_count()

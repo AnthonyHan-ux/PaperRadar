@@ -3,7 +3,7 @@
 Academic APIs publish rate limits that are *not* uniform:
 
 * OpenAlex   -> 10 req/s (polite pool with mailto)
-* Crossref   -> 50 req/s polite pool, but bursts get 429
+* Crossref   -> public list queries: 1 req/s (July 2026 API limits)
 * S2         -> 1 req/s unauthenticated, aggressive 429
 * arXiv      -> 3 s between requests, hard requirement
 * Unpaywall  -> 100k/day, but be nice

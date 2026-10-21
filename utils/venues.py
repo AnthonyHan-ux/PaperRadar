@@ -157,6 +157,17 @@ def venue_matches(venue: Optional[str], selected: list[str]) -> bool:
         return True
     norm = normalize_text(venue)
     for item in selected:
+        from utils.search_catalog import find_suggestion
+        from utils.title_normalizer import contains_term
+
+        known = find_suggestion(item, 'venues')
+        if known:
+            aliases = [known['value'], *known.get('aliases', [])]
+            if any(norm == normalize_text(alias) for alias in aliases):
+                return True
+            if known.get('kind') == 'conference' and any(contains_term(norm, alias) for alias in aliases):
+                return True
+            continue
         alias_norm = normalize_text(item)
         if alias_norm and alias_norm in norm:
             return True

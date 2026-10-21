@@ -96,6 +96,8 @@ def parse_entry(entry: ET.Element, source: str = "arxiv") -> Optional[Paper]:
         title=title,
         authors=authors,
         year=year,
+        publication_date=published[:10],
+        date_kind='submitted',
         venue=venue,
         doi=doi or None,
         arxiv_id=arxiv_id,
@@ -121,24 +123,34 @@ class ArxivProvider(SearchProvider):
     # ------------------------------------------------------------------ #
     def _build_query(self, query: SearchQuery) -> str:
         text = query.text.replace('"', " ").strip()
-        if query.mode == SearchMode.TITLE:
-            return f'ti:"{text}"'
-        if query.mode == SearchMode.AUTHOR:
-            return f'au:"{text}"'
-        return f'all:"{text}"'
+        field = 'ti' if query.mode == SearchMode.TITLE else ('au' if query.mode == SearchMode.AUTHOR else 'all')
+        if query.extra.get('match_mode') == 'fuzzy':
+            tokens = [t for t in _TOKEN_RE.findall(text) if t.lower() not in _STOP]
+            expression = ' AND '.join(f'{field}:{token}' for token in tokens) or f'{field}:"{text}"'
+        else:
+            expression = f'{field}:"{text}"'
+        return self._with_dates(expression, query)
+
+    @staticmethod
+    def _with_dates(expression: str, query: SearchQuery) -> str:
+        if query.start_date or query.end_date:
+            lower = (query.start_date or '1991-01-01').replace('-', '') + '0000'
+            upper = (query.end_date or '2100-12-31').replace('-', '') + '2359'
+            return f'({expression}) AND submittedDate:[{lower} TO {upper}]'
+        return expression
 
     @staticmethod
     def _fallback_query(query: SearchQuery) -> str:
         tokens = [
             token for token in _TOKEN_RE.findall(query.text)
             if token.lower() not in _STOP
-        ][:4]
+        ]
         if not tokens:
             return ""
         field = "ti" if query.mode == SearchMode.TITLE else (
             "au" if query.mode == SearchMode.AUTHOR else "all"
         )
-        return " AND ".join(f"{field}:{token}" for token in tokens)
+        return ArxivProvider._with_dates(" AND ".join(f"{field}:{token}" for token in tokens), query)
 
     def _fetch(self, search_query: str, query: SearchQuery, start: int = 0) -> list[ET.Element]:
         params: dict[str, Any] = {
@@ -173,7 +185,7 @@ class ArxivProvider(SearchProvider):
             entries = self._fetch(self._build_query(query), query)
             # Phrase search is precise but misses papers that reorder terms;
             # add an AND-of-tokens pass when the phrase pass is thin.
-            if len(entries) < min(3, max(1, query.limit // 4)):
+            if query.extra.get('match_mode') != 'exact' and len(entries) < min(3, max(1, query.limit // 4)):
                 fallback = self._fallback_query(query)
                 if fallback and fallback != self._build_query(query):
                     log.debug("arXiv phrase search thin (%d), retrying %s",

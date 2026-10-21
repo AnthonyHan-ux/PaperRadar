@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from typing import Iterable, Optional
 
 from models.paper import Paper
+from utils.paper_identity import title_match_compatible
 from utils.title_normalizer import normalize_title, title_similarity
 
 log = logging.getLogger(__name__)
@@ -50,7 +51,7 @@ class MergeService:
         stats = MergeStats()
         by_doi: dict[str, int] = {}
         by_arxiv: dict[str, int] = {}
-        by_title: dict[str, int] = {}
+        by_title: dict[str, list[int]] = {}
         merged: list[Paper] = []
 
         for batch in batches:
@@ -74,8 +75,10 @@ class MergeService:
                         by_arxiv[target.arxiv_id] = index
                     new_title_key = normalize_title(target.title)
                     if new_title_key and new_title_key != old_title_key:
-                        by_title.pop(old_title_key, None)
-                        by_title[new_title_key] = index
+                        old_bucket = by_title.get(old_title_key, [])
+                        if index in old_bucket:
+                            old_bucket.remove(index)
+                        by_title.setdefault(new_title_key, []).append(index)
 
         stats.output_count = len(merged)
         log.info("merge: %s", stats.as_text())
@@ -88,7 +91,7 @@ class MergeService:
         merged: list[Paper],
         by_doi: dict[str, int],
         by_arxiv: dict[str, int],
-        by_title: dict[str, int],
+        by_title: dict[str, list[int]],
         stats: MergeStats,
     ) -> Optional[int]:
         if paper.doi and paper.doi in by_doi:
@@ -101,9 +104,10 @@ class MergeService:
         title_key = normalize_title(paper.title)
         if not title_key:
             return None
-        if title_key in by_title:
-            stats.merged_by_title_exact += 1
-            return by_title[title_key]
+        for index in by_title.get(title_key, []):
+            if title_match_compatible(paper, merged[index]):
+                stats.merged_by_title_exact += 1
+                return index
 
         # Fuzzy pass.  Compare only against a candidate block (first token) to
         # keep this linear-ish for a few thousand records, then fall back to a
@@ -112,6 +116,8 @@ class MergeService:
         best_index: Optional[int] = None
         best_score = 0.0
         for index in candidates:
+            if not title_match_compatible(paper, merged[index], fuzzy=True):
+                continue
             score = title_similarity(paper.title, merged[index].title)
             if score > best_score:
                 best_score = score
@@ -124,11 +130,11 @@ class MergeService:
         return None
 
     def _candidates_for(
-        self, title_key: str, merged: list[Paper], by_title: dict[str, int]
+        self, title_key: str, merged: list[Paper], by_title: dict[str, list[int]]
     ) -> list[int]:
         first = title_key.split(" ", 1)[0] if title_key else ""
         block = [
-            index for key, index in by_title.items()
+            index for key, indexes in by_title.items() for index in indexes
             if key and key.split(" ", 1)[0] == first
         ]
         if block:
@@ -144,7 +150,7 @@ class MergeService:
         index: int,
         by_doi: dict[str, int],
         by_arxiv: dict[str, int],
-        by_title: dict[str, int],
+        by_title: dict[str, list[int]],
     ) -> None:
         if paper.doi:
             by_doi.setdefault(paper.doi, index)
@@ -152,7 +158,7 @@ class MergeService:
             by_arxiv.setdefault(paper.arxiv_id, index)
         key = normalize_title(paper.title)
         if key:
-            by_title.setdefault(key, index)
+            by_title.setdefault(key, []).append(index)
 
 
 def dedupe_papers(papers: Iterable[Paper], title_threshold: float = 95.0) -> tuple[list[Paper], MergeStats]:

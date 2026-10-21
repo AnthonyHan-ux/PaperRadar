@@ -28,7 +28,7 @@ def test_model_exposes_all_columns(qapp, sample_paper):
     model = PaperTableModel()
     model.set_papers([sample_paper])
     assert model.rowCount() == 1
-    assert model.columnCount() == 11
+    assert model.columnCount() == 12
     headers = [
         model.headerData(i, Qt.Horizontal) for i in range(model.columnCount())
     ]

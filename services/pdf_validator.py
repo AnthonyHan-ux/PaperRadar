@@ -20,12 +20,13 @@ Outcomes: ``VALIDATED`` / ``TITLE_WARNING`` / ``WRONG_PAPER`` / ``INVALID_PDF``.
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-from models.paper import PdfStatus, Paper
-from utils.title_normalizer import normalize_text, title_similarity
+from models.paper import PdfStatus, Paper, clean_doi, clean_arxiv_id
+from utils.title_normalizer import contains_term, normalize_text, title_similarity
 
 log = logging.getLogger(__name__)
 
@@ -146,22 +147,27 @@ class PdfValidator:
             )
 
         similarity = self._title_similarity(title, page_text)
-        doi_bonus = self._identifier_present(page_text, paper)
-
-        if doi_bonus:
+        title_region = self._title_region(page_text)
+        doi_bonus = self._identifier_present(title_region, paper)
+        header_dois = {clean_doi(match.group()) for match in re.finditer(
+            r'(?<![A-Za-z0-9])10\.\d{4,9}/[^\s<>"\'}]+', title_region, re.I)}
+        conflict = bool(paper and paper.doi and header_dois and paper.doi not in header_dois)
+        authors_missing = bool(paper and paper.authors and not doi_bonus and not any(
+            contains_term(normalize_text(title_region), normalize_text(author.split(',')[0] if ',' in author else author).split()[-1])
+            for author in paper.authors if normalize_text(author)))
+        if similarity >= self.title_threshold and (conflict or authors_missing):
             return ValidationResult(
-                PdfStatus.VALIDATED,
-                f"首页包含论文 DOI/arXiv ID，标题相似度 {similarity:.1f}",
-                title_similarity=similarity,
-                page_count=page_count,
-                file_size=size,
-                has_text=True,
-                matched_title=self._guess_title_line(page_text),
+                PdfStatus.TITLE_WARNING,
+                "标题匹配，但" + ("首页 DOI 与目标不一致，请核对版本" if conflict else "未找到预期作者，请人工确认身份"),
+                title_similarity=similarity, page_count=page_count, file_size=size,
+                has_text=True, matched_title=self._guess_title_line(page_text),
             )
+
         if similarity >= self.title_threshold:
             return ValidationResult(
                 PdfStatus.VALIDATED,
-                f"标题相似度 {similarity:.1f} ≥ {self.title_threshold:.0f}",
+                f"标题相似度 {similarity:.1f} ≥ {self.title_threshold:.0f}"
+                + ("；DOI/arXiv ID 精确匹配" if doi_bonus else ""),
                 title_similarity=similarity,
                 page_count=page_count,
                 file_size=size,
@@ -194,36 +200,35 @@ class PdfValidator:
     def _title_similarity(title: str, page_text: str) -> float:
         if not title:
             return 0.0
-        norm_page = normalize_text(page_text)
         norm_title = normalize_text(title)
-        if not norm_page or not norm_title:
+        if not page_text or not norm_title:
             return 0.0
+        # Restrict evidence to the title area; a citation in the abstract or
+        # bibliography must never identify the document that contains it.
+        head = PdfValidator._title_region(page_text)
+        lines = [line.strip() for line in head.splitlines() if line.strip()][:20]
+        scores = [title_similarity(title, ' '.join(lines[start:start + length]))
+                  for start in range(len(lines)) for length in range(1, 7)
+                  if start + length <= len(lines)]
+        return max(scores, default=0.0)
 
-        from rapidfuzz import fuzz
-
-        # partial_ratio finds the best matching window anywhere on page 1, which
-        # is what we want because the title is preceded/followed by authors,
-        # affiliations, arXiv stamps and conference banners.
-        partial = float(fuzz.partial_ratio(norm_title, norm_page))
-        # Also compare against the head of the page (usually the title block).
-        head = norm_page[: max(200, len(norm_title) + 120)]
-        head_score = title_similarity(title, head)
-        token_set = float(fuzz.token_set_ratio(norm_title, norm_page[:2000]))
-        return max(partial, head_score, token_set)
+    @staticmethod
+    def _title_region(page_text: str) -> str:
+        return re.split(r'(?im)^\s*(?:abstract|references|bibliography|'
+                        r'(?:\d+[.\s]+)?introduction|摘要|参考文献)\b', page_text, maxsplit=1)[0]
 
     @staticmethod
     def _identifier_present(page_text: str, paper: Optional[Paper]) -> bool:
         if paper is None:
             return False
-        norm_page = normalize_text(page_text)
-        norm_page_compact = norm_page.replace(" ", "")
-        for value in (paper.doi, paper.arxiv_id):
-            if not value:
-                continue
-            needle = normalize_text(value).replace(" ", "")
-            if needle and needle in norm_page_compact:
-                return True
-        return False
+        doi_values = {clean_doi(match.group()) for match in
+                      re.finditer(r'(?<![A-Za-z0-9])10\.\d{4,9}/[^\s<>"\'}]+', page_text, re.I)}
+        if paper.doi and paper.doi in doi_values:
+            return True
+        arxiv_values = {clean_arxiv_id(match.group()) for match in re.finditer(
+            r'(?<![\w.])(?:\d{4}\.\d{4,5}(?:v\d+)?|[a-z-]+(?:\.[a-z]{2})?/\d{7}(?:v\d+)?)(?![\w.])',
+            page_text, re.I)}
+        return bool(paper.arxiv_id and paper.arxiv_id in arxiv_values)
 
     @staticmethod
     def _guess_title_line(page_text: str) -> str:

@@ -8,12 +8,14 @@ and sqlite imports makes the rest of the codebase easy to unit-test.
 from __future__ import annotations
 
 import re
+from urllib.parse import unquote, urlsplit
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Iterable, Optional
 
 from utils.title_normalizer import normalize_title
+from utils.publication_dates import normalize_publication_date
 
 
 # --------------------------------------------------------------------------- #
@@ -120,11 +122,17 @@ def clean_doi(value: Optional[str]) -> Optional[str]:
     if not value:
         return None
     text = value.strip()
+    if re.match(r'^https?://(?:dx\.)?doi\.org/', text, re.I):
+        text = unquote(urlsplit(text).path.lstrip('/'))
     text = re.sub(r"^(?:https?://(?:dx\.)?doi\.org/|doi:\s*)", "", text, flags=re.I)
     m = _DOI_RE.search(text)
     if not m:
         return None
-    return m.group(0).rstrip(".,;)]}").lower()
+    doi = m.group(0).rstrip('.,;')
+    # Parentheses are legal DOI characters. Strip only unmatched wrappers.
+    while doi.endswith(')') and doi.count(')') > doi.count('('):
+        doi = doi[:-1]
+    return doi.lower()
 
 
 def clean_arxiv_id(value: Optional[str]) -> Optional[str]:
@@ -191,12 +199,17 @@ class Paper:
     discovered_at: str = field(default_factory=_now)
     downloaded_at: Optional[str] = None
     source_url: Optional[str] = None
+    publication_date: Optional[str] = None
+    date_kind: str = 'published'
 
     # ------------------------------------------------------------------ #
     # Normalisation / derived values
     # ------------------------------------------------------------------ #
     def __post_init__(self) -> None:
         self.title = (self.title or "").strip()
+        self.publication_date = normalize_publication_date(self.publication_date)
+        if self.publication_date and self.year is None:
+            self.year = int(self.publication_date[:4])
         self.doi = clean_doi(self.doi)
         self.arxiv_id = clean_arxiv_id(self.arxiv_id)
         self.authors = _dedupe_keep_order(self.authors)
@@ -210,6 +223,13 @@ class Paper:
     @property
     def normalized_title(self) -> str:
         return normalize_title(self.title)
+
+    @property
+    def date_label(self) -> str:
+        value = self.publication_date or str(self.year or '')
+        precision = {4:'仅年份', 7:'精确到月', 10:'来源记录到日'}.get(len(value), '日期缺失')
+        kind = '首投稿' if self.date_kind == 'submitted' else '发表'
+        return f'{kind}：{value or "未知"}（{precision}）'
 
     @property
     def first_author(self) -> str:
@@ -284,6 +304,15 @@ class Paper:
             self.abstract = other.abstract
         if not self.year and other.year:
             self.year = other.year
+        if other.publication_date:
+            prefer_published = self.date_kind == 'submitted' and other.date_kind == 'published'
+            same_date_more_precise = (self.date_kind == other.date_kind
+                and self.publication_date and other.publication_date.startswith(self.publication_date)
+                and len(other.publication_date) > len(self.publication_date))
+            if not self.publication_date or prefer_published or same_date_more_precise:
+                self.publication_date = other.publication_date
+                self.date_kind = other.date_kind
+                self.year = int(other.publication_date[:4])
         if not self.venue and other.venue:
             self.venue = other.venue
         if not self.doi and other.doi:
@@ -331,6 +360,8 @@ class Paper:
             "title": self.title,
             "authors": list(self.authors),
             "year": self.year,
+            "publication_date": self.publication_date,
+            "date_kind": self.date_kind,
             "venue": self.venue,
             "doi": self.doi,
             "arxiv_id": self.arxiv_id,

@@ -64,7 +64,7 @@ def test_venue_matches_canonical_and_alias():
     assert venue_matches("anything", [])
 
 
-def test_user_config_venue_list_is_union_with_defaults(tmp_path):
+def test_custom_venue_list_is_preserved_without_discipline_defaults(tmp_path):
     config_dir = tmp_path / "config"
     config_dir.mkdir()
     (config_dir / "config.yaml").write_text(
@@ -74,8 +74,7 @@ def test_user_config_venue_list_is_union_with_defaults(tmp_path):
     settings = load_settings(home=tmp_path)
     venues = settings.venues
     assert venues[0] == "My Custom Venue"
-    assert "IEEE GRSL" in venues
-    assert "IEEE JSTARS" in venues
-    assert "Remote Sensing (MDPI)" in venues
+    assert "IEEE GRSL" not in venues  # No discipline-specific default venue list.
+    assert venues == ["My Custom Venue"]
     # No duplicates.
     assert len(venues) == len(set(venues))

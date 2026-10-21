@@ -19,7 +19,7 @@ TITLE = "Beyond Attention: Convolutional Global Context for Remote Sensing Chang
 def _pdf_bytes(text: str, lines: int = 40) -> bytes:
     document = fitz.open()
     page = document.new_page()
-    body = "\n".join([text] + [f"Line {i} of filler text for the validation layer." for i in range(lines)])
+    body = "\n".join([text, "Wei Zhang"] + [f"Line {i} of filler text for the validation layer." for i in range(lines)])
     page.insert_textbox(fitz.Rect(40, 40, 555, 800), body, fontsize=10)
     data = document.tobytes()
     document.close()

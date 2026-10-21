@@ -39,7 +39,7 @@ import yaml
 log = logging.getLogger(__name__)
 
 APP_NAME = "PaperRadar"
-APP_VERSION = "1.1.0"
+APP_VERSION = "1.3.1"
 
 DEFAULT_CONFIG: dict[str, Any] = {
     "app": {"theme": "dark", "language": "zh", "log_level": "INFO"},
@@ -47,14 +47,14 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "openalex_mailto": "",
         "unpaywall_email": "",
         "semantic_scholar_api_key": "",
-        "user_agent": "PaperRadar/1.1 (+https://github.com/paperradar; academic use)",
+        "user_agent": "PaperRadar/1.3 (+https://github.com/paperradar; academic use)",
         "timeout_seconds": 30,
         "max_retries": 3,
         "cache_ttl_hours": 24,
         "rate_limits": {
             "openalex": 0.15,
             "semantic_scholar": 1.2,
-            "crossref": 0.2,
+            "crossref": 1.1,
             "arxiv": 3.2,
             "unpaywall": 0.2,
             "openreview": 1.0,
@@ -91,42 +91,16 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "max_negative_penalty": 30,
         "bands": {"high": 90, "medium": 70, "low": 50},
     },
-    "venues": [
-        "CVPR", "ICCV", "ECCV", "NeurIPS", "ICLR", "AAAI", "ACM MM",
-        "IEEE TGRS", "IEEE TIP", "IEEE JSTARS", "IEEE GRSL",
-        "ISPRS JPRS", "Remote Sensing of Environment", "Remote Sensing (MDPI)",
-        "JAG", "Photogrammetric Engineering & Remote Sensing",
-        "Information Fusion", "arXiv", "Other",
-    ],
-    "directions": [
-        "Change Detection", "Optical-SAR", "Multimodal", "Disaster",
-        "Building Damage", "Cloud Removal", "Fog", "Degradation",
-        "Robustness", "Domain Generalization", "Foundation Model", "VLM",
-        "Agent", "Long Time Series", "Generative Model",
-    ],
+    "venues": [],
+    "directions": [],
 }
 
 DEFAULT_PROFILE: dict[str, Any] = {
-    "name": "Degradation-Robust Multimodal Remote Sensing",
-    "keywords": [
-        "optical SAR", "change detection", "building damage", "degradation",
-        "fog", "cloud", "noise", "reliability", "robust fusion",
-        "remote sensing", "multimodal fusion",
-    ],
-    "positive_terms": [
-        "cross-event", "generalization", "heterogeneous", "missing modality",
-        "disaster", "foundation model", "vision-language", "SAR-optical",
-        "all-weather", "low-light", "haze", "super-resolution",
-    ],
-    "negative_terms": [
-        "medical", "autonomous driving", "infrared-visible fusion",
-        "human action recognition",
-    ],
-    "priority_venues": [
-        "ISPRS Journal of Photogrammetry and Remote Sensing",
-        "Remote Sensing of Environment", "IEEE TGRS", "IEEE TIP",
-        "CVPR", "ICCV", "ECCV", "NeurIPS",
-    ],
+    "name": "我的研究项目",
+    "keywords": [],
+    "positive_terms": [],
+    "negative_terms": [],
+    "priority_venues": [],
 }
 
 
@@ -466,7 +440,11 @@ class Settings:
     @property
     def rate_limits(self) -> dict[str, float]:
         raw = self.api.get("rate_limits") or {}
-        return {str(k): float(v) for k, v in raw.items() if v is not None}
+        limits = {str(k): float(v) for k, v in raw.items() if v is not None}
+        # Since July 2026 public list queries allow one request per second.
+        # Older local configs used 0.2 seconds, which causes multi-venue 429s.
+        limits['crossref'] = max(1.1, limits.get('crossref',1.1))
+        return limits
 
     def save_profile(self, profile: dict[str, Any]) -> None:
         self.profile = profile

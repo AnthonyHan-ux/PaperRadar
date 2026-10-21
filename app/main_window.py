@@ -60,7 +60,7 @@ class MainWindow(QMainWindow):
         self._download_busy = False
         self._search_busy = False
 
-        self.setWindowTitle(f"{APP_NAME} · 遥感文献雷达  v{APP_VERSION}")
+        self.setWindowTitle(f"{APP_NAME} · 科研文献雷达  v{APP_VERSION}")
         self.resize(1520, 940)
         self.setMinimumSize(1180, 720)
         try:
@@ -102,8 +102,8 @@ class MainWindow(QMainWindow):
         body_layout.setSpacing(10)
 
         self.search_panel = SearchPanel(self.settings)
-        self.search_panel.setMinimumWidth(300)
-        self.search_panel.setMaximumWidth(380)
+        self.search_panel.setMinimumWidth(350)
+        self.search_panel.setMaximumWidth(420)
         self.search_panel.search_requested.connect(self._on_search)
         self.search_panel.profile_requested.connect(self._open_profile)
         self.search_panel.reset_requested.connect(lambda: self.statusBar().showMessage("条件已重置"))
@@ -123,6 +123,7 @@ class MainWindow(QMainWindow):
         self.result_table.open_pdf_requested.connect(self._open_pdf)
         self.result_table.download_requested.connect(self._start_download)
         self.result_table.details_requested.connect(self._show_details)
+        self.result_table.relax_requested.connect(self._relax_search)
         self.tabs.addTab(self.result_table, "搜索结果")
 
         self.library_panel = LibraryPanel()
@@ -138,6 +139,7 @@ class MainWindow(QMainWindow):
         self.log_panel = LogPanel(self.service.log_handler)
         self.log_panel.set_log_dir(self.settings.paths.logs_dir)
         self.tabs.addTab(self.log_panel, "日志")
+        self.result_table.logs_requested.connect(lambda:self.tabs.setCurrentWidget(self.log_panel))
 
         right_layout.addWidget(self.tabs, 1)
         splitter.addWidget(right)
@@ -161,7 +163,7 @@ class MainWindow(QMainWindow):
         title_box = QVBoxLayout()
         title = QLabel("PaperRadar")
         title.setObjectName("AppTitle")
-        subtitle = QLabel("遥感文献雷达 · 检索 / 去重 / 开放获取 PDF 自动下载")
+        subtitle = QLabel("科研文献雷达 · 检索 / 去重 / 开放获取 PDF 自动下载")
         subtitle.setObjectName("AppSubtitle")
         title_box.addWidget(title)
         title_box.addWidget(subtitle)
@@ -315,17 +317,27 @@ class MainWindow(QMainWindow):
             mode=mode,
             year_from=payload.get("year_from"),
             year_to=payload.get("year_to"),
+            date_from=payload.get('date_from'),
+            date_to=payload.get('date_to'),
             venues=payload.get("venues") or [],
             limit=int(payload.get("limit") or 30),
         )
         query.extra["directions"] = payload.get("directions") or []
+        query.extra["sort_by"] = payload.get("sort_by") or "query"
+        query.extra['match_mode'] = payload.get('match_mode') or 'fuzzy'
+        query.extra['include_uncertain_dates'] = bool(payload.get('include_uncertain_dates'))
+        if payload.get('input_text') and payload['input_text'] != query.text:
+            query.extra['original_text'] = payload['input_text']
 
         self._search_busy = True
+        self.result_table.show_searching(query)
+        self.tabs.setCurrentWidget(self.result_table)
         self._set_busy(True, "检索中…")
         self.statusBar().showMessage(f"正在检索：{query.text}")
         self.log_panel.append_line(
             f"开始检索 [{mode.value}] {query.text!r} "
-            f"年份={payload.get('year_from') or '不限'}-{payload.get('year_to') or '不限'}",
+            f"日期={query.start_date or '不限'} 至 {query.end_date or '不限'}；"
+            f"匹配={query.extra['match_mode']}",
             "#79c0ff",
         )
 
@@ -333,16 +345,19 @@ class MainWindow(QMainWindow):
             self._search_busy = False
             self._set_busy(False)
             self._papers = outcome.papers
-            self.result_table.set_papers(outcome.papers)
+            self.result_table.show_outcome(outcome)
+            self.result_table.set_sort_mode(query.extra.get("sort_by", "query"))
             self.tabs.setCurrentWidget(self.result_table)
             self._update_counters()
             self.statusBar().showMessage(outcome.summary_text())
             self.log_panel.append_line(outcome.summary_text(), "#7ee787")
             for name, error in outcome.errors():
                 self.log_panel.append_line(f"{name} 检索失败：{error}", "#ff7b72")
+            for warning in outcome.warnings:
+                self.log_panel.append_line(warning, '#ffd166')
             if not outcome.papers:
                 self.log_panel.append_line(
-                    "没有结果。可尝试更短的关键词、放宽年份，或检查网络。", "#ffd166"
+                    outcome.feedback_heading() + '\n' + outcome.feedback_text(), '#ffd166'
                 )
 
         def failed(message: str, traceback_text: str) -> None:
@@ -350,10 +365,20 @@ class MainWindow(QMainWindow):
             self._set_busy(False)
             self.statusBar().showMessage("检索失败")
             self.log_panel.append_line(f"检索失败：{message}", "#ff7b72")
+            self.result_table.show_failure(message)
+            self.tabs.setCurrentWidget(self.result_table)
             log.error("search failed: %s\n%s", message, traceback_text)
-            QMessageBox.warning(self, "检索失败", f"{message}\n\n详情见日志。")
 
         self.runner.submit(self.service.run_search, query, on_done=done, on_error=failed)
+
+    def _relax_search(self, kind: str) -> None:
+        if self._search_busy:
+            return
+        if kind in ('venue','both'):
+            self.search_panel.venue_picker.clear()
+        if kind in ('direction','both'):
+            self.search_panel.direction_picker.clear()
+        self.search_panel._emit_search()
 
     # ------------------------------------------------------------------ #
     # Download
@@ -565,7 +590,7 @@ class MainWindow(QMainWindow):
             self,
             "关于 PaperRadar",
             f"<b>PaperRadar</b> v{APP_VERSION}<br>"
-            "遥感文献雷达：多源检索 · 去重 · 开放获取 PDF 下载 · 本地文献库<br><br>"
+            "科研文献雷达：多源检索 · 去重 · 开放获取 PDF 下载 · 本地文献库<br><br>"
             "只访问合法公开来源（arXiv / OpenAlex / Unpaywall / OpenReview 等），"
             "不绕过付费墙、不访问侵权站点。<br><br>"
             f"数据目录：{self.settings.paths.home}",

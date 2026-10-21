@@ -80,6 +80,7 @@ COLUMNS = [
     ("oa", "OA", 56),
     ("pdf", "PDF状态", 78),
     ("local", "本地", 42),
+    ('date', '发表 / 投稿日期', 140),
 ]
 
 SORT_ROLE = Qt.UserRole + 1
@@ -159,6 +160,8 @@ class PaperTableModel(QAbstractTableModel):
             return paper.title
         if key == "year":
             return paper.year or ""
+        if key == 'date':
+            return paper.publication_date or (str(paper.year) + '（仅年）' if paper.year else '日期缺失')
         if key == "authors":
             return paper.authors_short
         if key == "venue":
@@ -188,6 +191,8 @@ class PaperTableModel(QAbstractTableModel):
         if role == PAPER_ROLE:
             return paper
         if role == SORT_ROLE:
+            if key == 'date':
+                return paper.publication_date or str(paper.year or '')
             if key == "year":
                 return paper.year or 0
             if key == "score":
@@ -222,8 +227,10 @@ class PaperTableModel(QAbstractTableModel):
 
     def _tooltip(self, paper: Paper, key: str) -> str:
         note = self._notes.get(id(paper), "")
+        if key in ('year','date'):
+            return paper.date_label + '\n日期按来源元数据记录；arXiv 为首投稿日期。'
         if key == "title":
-            parts = [paper.title]
+            parts = [paper.title, paper.date_label]
             if paper.abstract:
                 parts.append("")
                 parts.append(snippet(paper.abstract, 320))
@@ -243,6 +250,9 @@ class PaperTableModel(QAbstractTableModel):
                 return f"相关性 {paper.relevance_score or 0:.0f}（{paper.relevance_band}）\n未命中任何关键词"
             lines = [f"相关性 {paper.relevance_score or 0:.0f}（{paper.relevance_band}）", ""]
             for item in paper.relevance_details:
+                if 'note' in item:
+                    lines.append(item['note'])
+                    continue
                 terms = "、".join(item.get("terms", [])[:6])
                 lines.append(f"{item.get('label', '')}：{terms}  {'+' if item.get('points', 0) >= 0 else ''}{item.get('points', 0):.0f}")
             return "\n".join(lines)

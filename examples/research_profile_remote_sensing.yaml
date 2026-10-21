@@ -1,0 +1,52 @@
+# "我的方向" — the research profile driving relevance scoring.
+# Edit this file from the GUI (我的方向) or directly; PaperRadar picks it up on
+# the next search.
+
+name: Degradation-Robust Multimodal Remote Sensing
+
+# Core terms: each hit in title / abstract / keywords contributes to the score.
+keywords:
+  - optical SAR
+  - change detection
+  - building damage
+  - degradation
+  - fog
+  - cloud
+  - noise
+  - reliability
+  - robust fusion
+  - remote sensing
+  - multimodal fusion
+
+# Additional terms that make a paper more interesting (slightly weaker signal).
+positive_terms:
+  - cross-event
+  - generalization
+  - heterogeneous
+  - missing modality
+  - disaster
+  - foundation model
+  - vision-language
+  - SAR-optical
+  - all-weather
+  - low-light
+  - haze
+  - super-resolution
+
+# Any hit here penalises the paper (unrelated field borrowing our vocabulary).
+negative_terms:
+  - medical
+  - autonomous driving
+  - infrared-visible fusion
+  - human action recognition
+
+# Venue bonus (fuzzy matched against the provider's venue string).
+priority_venues:
+  - ISPRS Journal of Photogrammetry and Remote Sensing
+  - Remote Sensing of Environment
+  - IEEE TGRS
+  - IEEE TIP
+  - CVPR
+  - ICCV
+  - ECCV
+  - NeurIPS

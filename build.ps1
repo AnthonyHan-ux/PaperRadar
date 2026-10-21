@@ -86,6 +86,7 @@ if ($Clean) {
 $common = @(
     "--noconfirm", "--clean",
     "--add-data", "$Root\config;config",
+    "--add-data", "$Root\assets;assets",
     "--add-data", "$Root\database\schema.sql;database",
     "--icon", "$Root\assets\paperradar.ico",
     "--exclude-module", "tkinter",

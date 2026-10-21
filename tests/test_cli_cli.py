@@ -13,7 +13,7 @@ def test_version_flag(capsys):
     with pytest.raises(SystemExit) as excinfo:
         main(["--version"])
     assert excinfo.value.code == 0
-    assert "PaperRadar 1.1.0" in capsys.readouterr().out
+    assert "PaperRadar 1.3.1" in capsys.readouterr().out
 
 
 def test_stats_exports_download_log_csv(tmp_path, capsys):

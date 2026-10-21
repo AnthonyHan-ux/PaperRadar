@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Any, Iterable, Optional
 
 from models.paper import OaStatus, PdfCandidate, PdfStatus, Paper, clean_arxiv_id, clean_doi
+from utils.paper_identity import title_match_compatible
 from utils.title_normalizer import (
     normalize_title,
     title_fingerprint,
@@ -32,7 +33,7 @@ from utils.title_normalizer import (
 log = logging.getLogger(__name__)
 
 SCHEMA_PATH = Path(__file__).with_name("schema.sql")
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 
 def _utc_now() -> str:
@@ -80,7 +81,11 @@ class Database:
         self.corruption_note = ""
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._quarantine_if_corrupt()
-        self._initialise()
+        try:
+            self._initialise()
+        except Exception:
+            self.close_all()
+            raise
 
     def _quarantine_if_corrupt(self) -> None:
         """Detect a damaged database and move it aside before opening it.
@@ -106,6 +111,12 @@ class Database:
             finally:
                 probe.close()
         except sqlite3.DatabaseError as exc:
+            # Access, locking and read-only errors do not establish corruption.
+            # Never rename a healthy research library because it is unavailable.
+            code = getattr(exc, "sqlite_errorcode", None)
+            base_code = code & 0xff if code is not None else None
+            if base_code not in (sqlite3.SQLITE_CORRUPT, sqlite3.SQLITE_NOTADB):
+                raise
             result = f"{type(exc).__name__}: {exc}"
 
         if result.strip().lower() == "ok":
@@ -211,9 +222,13 @@ class Database:
         }
         add_title_key = "title_key" not in paper_columns
         add_http_status = "http_status" not in log_columns
+        add_publication_date = 'publication_date' not in paper_columns
+        add_date_kind = 'date_kind' not in paper_columns
 
-        if add_title_key or add_http_status:
+        if add_title_key or add_http_status or add_publication_date or add_date_kind:
             backup = self.backup(suffix="pre-migration") if self.count() > 0 else None
+            if self.count() > 0 and backup is None:
+                raise RuntimeError('Database upgrade cancelled: the library backup could not be created.')
             if backup is not None:
                 log.info("database backed up before schema upgrade: %s", backup)
 
@@ -230,6 +245,10 @@ class Database:
                     "ALTER TABLE download_logs ADD COLUMN http_status INTEGER"
                 )
                 log.info("schema: added download_logs.http_status")
+            if add_publication_date:
+                self.connection.execute('ALTER TABLE papers ADD COLUMN publication_date TEXT')
+            if add_date_kind:
+                self.connection.execute("ALTER TABLE papers ADD COLUMN date_kind TEXT NOT NULL DEFAULT 'published'")
             self.connection.commit()
             self.set_meta("schema_migrated_at", _utc_now())
 
@@ -325,6 +344,8 @@ class Database:
             title=row["title"],
             authors=_load_json(row["authors"], []),
             year=row["year"],
+            publication_date=row['publication_date'],
+            date_kind=row['date_kind'] or 'published',
             venue=row["venue"],
             doi=row["doi"],
             arxiv_id=row["arxiv_id"],
@@ -375,6 +396,8 @@ class Database:
             _json(paper.sources),
             paper.citation_count,
             paper.relevance_score,
+            paper.publication_date,
+            paper.date_kind,
         )
 
     # ------------------------------------------------------------------ #
@@ -398,11 +421,12 @@ class Database:
         normalized = normalize_title(paper.title)
         if not normalized:
             return None, ""
-        row = self._execute(
-            "SELECT id FROM papers WHERE normalized_title = ?", (normalized,)
-        ).fetchone()
-        if row:
-            return int(row["id"]), "title"
+        rows = self._execute(
+            "SELECT * FROM papers WHERE normalized_title = ? ORDER BY id", (normalized,)
+        ).fetchall()
+        for row in rows:
+            if title_match_compatible(paper, self.row_to_paper(row)):
+                return int(row["id"]), "title"
 
         # Fuzzy pass over the fingerprint bucket only.  The bucket is keyed on
         # the leading content words, so the cost depends on how many papers
@@ -413,12 +437,14 @@ class Database:
         if not key:
             return None, ""
         rows = self._execute(
-            "SELECT id, title FROM papers WHERE title_key = ? LIMIT 500", (key,)
+            "SELECT * FROM papers WHERE title_key = ? ORDER BY id LIMIT 500", (key,)
         ).fetchall()
 
         best_id: Optional[int] = None
         best_score = 0.0
         for row in rows:
+            if not title_match_compatible(paper, self.row_to_paper(row), fuzzy=True):
+                continue
             score = title_similarity(paper.title, row["title"])
             if score > best_score:
                 best_score = score
@@ -484,8 +510,9 @@ class Database:
                 title, normalized_title, title_key, authors, year, venue, doi,
                 arxiv_id, abstract, keywords, oa_status, pdf_status, local_path,
                 source_url, pdf_urls, sources, citation_count, relevance_score,
+                publication_date, date_kind,
                 discovered_at, updated_at, downloaded_at
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         """
         cursor = self._execute(sql, values, commit=True)
         paper.id = int(cursor.lastrowid or 0)
@@ -519,7 +546,7 @@ class Database:
                 year = ?, venue = ?, doi = ?, arxiv_id = ?, abstract = ?,
                 keywords = ?, oa_status = ?, pdf_status = ?, local_path = ?,
                 source_url = ?, pdf_urls = ?, sources = ?, citation_count = ?,
-                relevance_score = ?, updated_at = ?, downloaded_at = ?
+                relevance_score = ?, publication_date = ?, date_kind = ?, updated_at = ?, downloaded_at = ?
             WHERE id = ?
         """
         if conn is not None:

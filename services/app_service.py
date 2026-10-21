@@ -156,7 +156,12 @@ class AppService:
                     {
                         "year_from": query.year_from,
                         "year_to": query.year_to,
+                        'date_from':query.date_from,
+                        'date_to':query.date_to,
                         "venues": query.venues,
+                        'directions':query.extra.get('directions',[]),
+                        'match_mode':query.extra.get('match_mode'),
+                        'include_uncertain_dates':bool(query.extra.get('include_uncertain_dates')),
                     },
                     len(outcome.papers),
                 )
@@ -228,16 +233,53 @@ class AppService:
         progress: Optional[ProgressCallback] = None,
         auto_resolve: bool = True,
     ) -> DownloadResult:
-        if auto_resolve and not paper.pdf_candidates:
-            self.oa_finder.find(paper)
         try:
-            result = self.downloader.download(
-                paper, paper.pdf_candidates, cancel_event=cancel_event, progress=progress
-            )
+            result = self._download_with_recovery(paper, cancel_event, progress, auto_resolve)
+            paper.pdf_status = result.status
             self._persist_download(result, paper)
             return result
         finally:
             self.db.close_thread()
+
+    def _download_with_recovery(
+        self, paper: Paper, cancel_event: Optional[threading.Event],
+        progress: Optional[ProgressCallback], auto_resolve: bool,
+    ) -> DownloadResult:
+        if cancel_event is not None and cancel_event.is_set():
+            return DownloadResult(title=paper.title, status=PdfStatus.DOWNLOAD_FAILED,
+                                  message="用户取消", paper=paper)
+        existing = list(paper.pdf_candidates)
+        resolved = False
+        if auto_resolve and not existing:
+            self.oa_finder.find(paper)
+            resolved = True
+        if not paper.pdf_candidates and paper.oa_status == OaStatus.CLOSED:
+            return DownloadResult(title=paper.title, status=PdfStatus.PAYWALLED_ONLY,
+                                  message="未发现公开副本，来源报告为非开放获取", paper=paper)
+        result = self.downloader.download(
+            paper, paper.pdf_candidates, cancel_event=cancel_event, progress=progress
+        )
+        if result.ok or not auto_resolve or resolved:
+            return result
+        if cancel_event is not None and cancel_event.is_set():
+            return result
+        # A stale URL is a failed attempt, not evidence that no public copy
+        # exists. Discover alternatives once, then try only unattempted URLs.
+        try:
+            self.oa_finder.find(paper)
+        except Exception as exc:
+            result.message += f"；公开链接补查失败（{type(exc).__name__}）"
+            return result
+        attempted = {candidate.url for candidate in existing}
+        attempted.update(attempt.url for attempt in result.attempts)
+        fresh = [candidate for candidate in paper.pdf_candidates if candidate.url not in attempted]
+        if not fresh:
+            return result
+        recovered = self.downloader.download(paper, fresh, cancel_event=cancel_event, progress=progress)
+        recovered.attempts = result.attempts + recovered.attempts
+        if not recovered.ok and result.status == PdfStatus.PUBLIC_BUT_BLOCKED:
+            recovered.status = PdfStatus.PUBLIC_BUT_BLOCKED
+        return recovered
 
     def download_many(
         self,
@@ -247,69 +289,34 @@ class AppService:
         on_result: Optional[Callable[[DownloadResult], None]] = None,
         auto_resolve: bool = True,
     ) -> list[DownloadResult]:
-        # Resolve OA locations in parallel first: for a batch of 20+ papers the
-        # sequential arXiv/OpenAlex lookups would delay the first download by
-        # minutes.
-        to_resolve = [p for p in papers if auto_resolve and not p.pdf_candidates]
-        if to_resolve:
-            from concurrent.futures import ThreadPoolExecutor
-
-            def resolve(paper: Paper) -> None:
-                if progress is not None:
-                    try:
-                        progress(paper.title, 0, 0)
-                    except Exception:
-                        pass
+        # Use the same bounded recovery path as single downloads. Each worker
+        # owns its database connection, and each paper produces one callback.
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        if not papers:
+            return []
+        workers = max(1, min(4, len(papers), int(self.settings.download_cfg.get("max_workers", 3))))
+        results = {}
+        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="acquire") as pool:
+            futures = {pool.submit(self.download_one, paper, cancel_event, progress, auto_resolve): index
+                       for index, paper in enumerate(papers)}
+            for future in as_completed(futures):
+                index = futures[future]
                 try:
-                    self.oa_finder.find(paper)
-                except Exception as exc:  # pragma: no cover - defensive
-                    log.warning("OA resolution failed for %s: %s", paper.title[:60], exc)
-
-            workers = max(1, min(3, len(to_resolve)))
-            with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="oa") as pool:
-                list(pool.map(resolve, to_resolve))
-
-        pending: list[Paper] = []
-        skipped: list[DownloadResult] = []
-        for paper in papers:
-            if not paper.pdf_candidates:
-                status = (
-                    PdfStatus.PAYWALLED_ONLY
-                    if paper.oa_status == OaStatus.CLOSED
-                    else PdfStatus.NO_PUBLIC_COPY_FOUND
-                )
-                result = DownloadResult(
-                    title=paper.title, status=status,
-                    message="未发现合法公开 PDF", paper=paper,
-                )
-                self._persist_download(result, paper)
-                skipped.append(result)
+                    result = future.result()
+                except Exception as exc:
+                    result = DownloadResult(title=papers[index].title, status=PdfStatus.DOWNLOAD_FAILED,
+                                            message=f"下载线程异常：{type(exc).__name__}", paper=papers[index])
+                    try:
+                        self._persist_download(result, papers[index])
+                    finally:
+                        self.db.close_thread()
+                results[index] = result
                 if on_result is not None:
                     try:
                         on_result(result)
                     except Exception:
-                        pass
-            else:
-                pending.append(paper)
-
-        def handle_result(res: DownloadResult) -> None:
-            try:
-                self._persist_download(res, res.paper)
-            finally:
-                self.db.close_thread()
-            if on_result is not None:
-                try:
-                    on_result(res)
-                except Exception:
-                    pass
-
-        results = self.downloader.download_many(
-            pending,
-            cancel_event=cancel_event,
-            progress=progress,
-            on_result=handle_result,
-        )
-        return skipped + results
+                        log.exception("Download result callback failed")
+        return [results[index] for index in range(len(papers))]
 
     # ------------------------------------------------------------------ #
     def _persist_paper(self, paper: Paper) -> Optional[int]:

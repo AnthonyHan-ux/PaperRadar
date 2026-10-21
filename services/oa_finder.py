@@ -26,6 +26,7 @@ from models.paper import OaStatus, PdfCandidate, PdfStatus, Paper
 from providers.base import ProviderError, SearchProvider
 from services.merge_service import dedupe_candidates
 from utils.config import Settings
+from utils.paper_identity import title_match_compatible
 from utils.title_normalizer import title_similarity
 
 log = logging.getLogger(__name__)
@@ -91,6 +92,13 @@ class OAFinder:
             candidates.extend(openreview)
             finding.layers.append("OpenReview")
 
+        # DOI enrichment may discover an arXiv ID after the arXiv layer ran.
+        if paper.arxiv_id:
+            url = ARXIV_PDF.format(arxiv_id=paper.arxiv_id)
+            if not any(candidate.url == url for candidate in candidates):
+                candidates.append(PdfCandidate(url=url, provider="arXiv", is_oa=True))
+                if "arXiv" not in finding.layers:
+                    finding.layers.append("arXiv")
         unique = dedupe_candidates(candidates)
         finding.candidates = unique
 
@@ -146,7 +154,7 @@ class OAFinder:
         if match is None:
             return []
         score = title_similarity(paper.title, match.title)
-        if score < 90 or not match.arxiv_id:
+        if score < 90 or not match.arxiv_id or not title_match_compatible(paper, match, fuzzy=True):
             return []
         paper.arxiv_id = paper.arxiv_id or match.arxiv_id
         if not paper.abstract and match.abstract:
@@ -170,6 +178,9 @@ class OAFinder:
         if match is None:
             return []
 
+        if match.doi and match.doi != doi:
+            finding.notes.append(f"{name} 返回了冲突 DOI，未采用该记录")
+            return []
         if match.oa_status == OaStatus.CLOSED and name in ("openalex", "unpaywall"):
             finding.paywalled_evidence = True
         if not paper.abstract and match.abstract:
@@ -195,7 +206,7 @@ class OAFinder:
             return []
         if match is None:
             return []
-        if title_similarity(paper.title, match.title) < 92:
+        if title_similarity(paper.title, match.title) < 92 or not title_match_compatible(paper, match, fuzzy=True):
             return []
         if not paper.year and match.year:
             paper.year = match.year

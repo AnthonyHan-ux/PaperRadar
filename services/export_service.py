@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 CSV_FIELDS = [
     "title", "authors", "year", "venue", "doi", "arxiv_id",
     "oa_status", "pdf_status", "local_path", "relevance_score",
-    "citation_count", "sources", "url", "abstract",
+    "citation_count", "sources", "url", "abstract", 'publication_date', 'date_kind',
 ]
 
 CONFERENCE_VENUES = {
@@ -88,6 +88,8 @@ def _csv_row(paper: Paper) -> dict[str, str]:
         "title": paper.title,
         "authors": "; ".join(paper.authors),
         "year": str(paper.year or ""),
+        'publication_date':paper.publication_date or '',
+        'date_kind':paper.date_kind,
         "venue": paper.venue or "",
         "doi": paper.doi or "",
         "arxiv_id": paper.arxiv_id or "",
